@@ -110,3 +110,34 @@ extensions: [
             pipeline: string
         }
 ```
+
+### Project file examples
+
+```yaml
+actions:
+    deploy:
+        source:
+            subdir: .dagger/actions/deploy
+        builder: "core { dockerbuild { source: $source }}"
+types:
+    -
+        source:
+            subdir: .dagger/types
+    -
+        source:
+            git:
+                remote: https://github.com/MYORG/PLATFORM
+                ref: stable
+                subdir: dagger/types/common
+extensions:
+    yarn:
+        source:
+            git:
+                remote: https://github.com/dagger/cloak
+                ref: main
+                dir: examples/yarn
+
+
+extensions:
+    -
+```
