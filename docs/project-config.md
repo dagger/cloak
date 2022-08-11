@@ -28,47 +28,22 @@ name: string
 // Optional project description
 description?: string
 
-// Optional custom actions
-// Note: use this for statically defined actions.
-// Additional actions may be loaded dynamically by hooks.
-actions?: {
-    [name=string]: {
-        // Action source directory
-        source: #Source
+// Add capabilities to your API with code
 
-        // Pipeline to build action from source.
-        // encoded as a graphql query and executed by cloak.
-        // Default is standard docker build.
-        // Action source is available to the query as the gql variable `$source`
-        builder?: string | *"core { dockerbuild { source: $source } }"
-
-        // FIXME: sub-actions?
-    }
+#codeDir: {
+    source: #Source
+    sdk: "go" | "bash" | ...
 }
 
-// Optional custom types
-types?: [
-    ...{
-        {
-            // Load graphql types from a source directory
-            source: #Source
-            // Glob pattern specifying which files to match
-            glob: string | *"*.gql"
-        } | {
-            // Inline graphql schema
-            schema: string
-        }
-    }
-]
 
-// FIXME: services
-// FIXME: artifacts
+code?: #codeDir | [...#codeDir]
 
-// Extensions to load into the project
+// Recursively load other projects, and include their API in ours, with a namespace
 extensions: [
     ... {
         // Override the default extension name
         name?: string
+        
 
         // The source directory for the extension.
         // Extensions are basically imported projects.
@@ -94,6 +69,7 @@ extensions: [
             git: {
                 remote: string
                 ref?: string
+                dir: string
             }
         } | {
             // Download the source from an OCI registry
