@@ -19,101 +19,69 @@ Any directory that contains a file named `cloak.yaml` is considered a cloak proj
 The project file must 1) be encoded in yaml, and 2) match the following schema (expressed in [Cue](https://cuelang.org) for readability.
 
 ```cue
-// Schema version
-schemaVersion?: "0.0.1" | *"latest"
-
 // Optional project name
 name: string
 
 // Optional project description
 description?: string
 
-// Add capabilities to your API with code
 
-#codeDir: {
-    source: #Source
-    sdk: "go" | "bash" | ...
+// A cloak pipeline encoded as a grapqhl query
+#pipeline: string
+
+// Useful API queries available to all clients
+queries: {
+    // Action pipelines invoked by 'dagger do'
+    do: [string]: #pipeline
+
+    // Artifact pipelines invoked by 'dagger pull'
+    pull: [string]: #pipeline
+
+    // Service pipelines invoked by 'dagger run'
+    run: [string]: #pipeline
 }
 
+// Implement custom types to extend the API
+types: [
+    ...{
+        // Source directory for the type implementation
+        source: #pipeline
 
-code?: #codeDir | [...#codeDir]
-
-// Recursively load other projects, and include their API in ours, with a namespace
-extensions: [
-    ... {
-        // Override the default extension name
-        name?: string
-        
-
-        // The source directory for the extension.
-        // Extensions are basically imported projects.
-        // They are loaded recursively, and their API stitched in, with
-        // each extension's actions and types in their own namespace.
-        source: #Source
-
-        // FIXME: extension settings?
+        // SDK to use to build the type implementation
+        // FIXME: custom SDK
+        sdk: "go" | "typescript" | "bash" | "python"
     }
 ]
 
-// All the different ways to configure a source directory.
-#Source: {
-        {
-            // Load the extension source from a subdirectory of the project
-            subdir: string
-        } | {
-            // Load the extension source from a directory on the local host
-            // Note: this is a privileged operation and must require trusting the project author
-            localdir: string
-        } | {
-            // Download the source from a git repository
-            git: {
-                remote: string
-                ref?: string
-                dir: string
-            }
-        } | {
-            // Download the source from an OCI registry
-            oci: {
-                ref: string
-                digest?: string
-            }
-        } | {
-            // Download the source as a tar archive over http
-            http: string
-        } | {
-            // execute a cloak pipeline that outputs the source directory
-            // pipeline is encoded as a graphql query and executed by cloak
-            pipeline: string
-        }
+// Load extensions
+extensions: [
+    ...{
+        // Optionally override extension name
+        name?
+        // Pipeline to retrieve the extension source
+        source: #pipeline
+    }
+]
+
 ```
 
 ### Project file examples
 
 ```yaml
-actions:
-    deploy:
-        source:
-            subdir: .dagger/actions/deploy
-        builder: "core { dockerbuild { source: $source }}"
+queries:
+    do:
+        deploy: |
+            {
+                host { getenv(key: "NETLIFY_TOKEN") { save("token") } }
+                yarn { build { save("bld") } }
+                netlify { deploy(contents: "bld") }
+            }
+
 types:
     -
-        source:
-            subdir: .dagger/types
-    -
-        source:
-            git:
-                remote: https://github.com/MYORG/PLATFORM
-                ref: stable
-                subdir: dagger/types/common
-extensions:
-    yarn:
-        source:
-            git:
-                remote: https://github.com/dagger/cloak
-                ref: main
-                dir: examples/yarn
-
+        source: { core { subdir(path: "examples/todoapp/go", sdk: "go" ) } }
 
 extensions:
-    -
+    - source: universe { yarn }
+    - source: universe { netlify }
 ```
