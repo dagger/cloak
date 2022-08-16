@@ -1,7 +1,9 @@
-query ($version: String) {
-  core {
-    git(remote: "github.com/dagger/dagger", ref: $version) {
-      file(path: "/README.md")
+query ($version: String!) {
+  git {
+    remote(url: "github.com/dagger/dagger") {
+      pull(ref: $version) {
+        file(path: "/README.md")
+      }
     }
   }
 }

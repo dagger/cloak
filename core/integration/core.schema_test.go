@@ -34,21 +34,25 @@ func TestCoreGit(t *testing.T) {
 	t.Parallel()
 
 	res := struct {
-		Core struct {
-			Git struct {
-				File string
+		Git struct {
+			Remote struct {
+				Pull struct {
+					File string
+				}
 			}
 		}
 	}{}
 
 	err := testutil.Query(
 		`{
-			core {
-				git(remote: "github.com/dagger/dagger") {
-					file(path: "README.md")
+			git {
+				remote(url: "github.com/dagger/dagger") {
+					pull(ref: "main") {
+						file(path: "README.md")
+					}
 				}
 			}
 		}`, &res, nil)
 	require.NoError(t, err)
-	require.Contains(t, res.Core.Git.File, "dagger")
+	require.Contains(t, res.Git.Remote.Pull.File, "dagger")
 }

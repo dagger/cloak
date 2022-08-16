@@ -1,7 +1,9 @@
 {
-  core {
-    git(remote: "github.com/dagger/dagger") {
-      file(path: "README.md")
+  git {
+    remote(url: "github.com/dagger/dagger") {
+      pull(ref: "main") {
+        file(path: "README.md")
+      }
     }
   }
 }

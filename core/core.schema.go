@@ -28,9 +28,6 @@ func (r *coreSchema) Schema() string {
 		"Fetch an OCI image"
 		image(ref: String!): Filesystem!
 
-		"Fetch a git repository"
-		git(remote: String!, ref: String): Filesystem!
-
 		"Fetch a client directory"
 		clientdir(id: String!): Filesystem!
 	}
@@ -56,7 +53,6 @@ func (r *coreSchema) Resolvers() router.Resolvers {
 		},
 		"Core": router.ObjectResolver{
 			"image":     r.image,
-			"git":       r.git,
 			"clientdir": r.clientdir,
 		},
 	}
@@ -74,14 +70,6 @@ func (r *coreSchema) image(p graphql.ResolveParams) (any, error) {
 	ref := p.Args["ref"].(string)
 
 	st := llb.Image(ref)
-	return r.Solve(p.Context, st)
-}
-
-func (r *coreSchema) git(p graphql.ResolveParams) (any, error) {
-	remote := p.Args["remote"].(string)
-	ref, _ := p.Args["ref"].(string)
-
-	st := llb.Git(remote, ref)
 	return r.Solve(p.Context, st)
 }
 
