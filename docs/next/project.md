@@ -5,10 +5,11 @@
 ## Concepts
 
 - A project file defines workflows
+  - A project file loads extensions
 - A workflow makes a query to the API
-- A query can have optional parameters
-- A query can be bound to optional host resources (eg. local directory, env vars, secrets)
-- A project file loads extensions
+- A query can:
+  - have optional parameters
+  - be bound to optional host resources (eg. local directory, env vars, secrets)
 - An extension can come from 3 sources
   - core: builtins implemented by dagger
   - universe: public packages from the catalog
@@ -40,7 +41,7 @@ extensions:
 
 workflows:
   # run: dagger do test
-  - name: test
+  test:
     # Source directory to pass to the workflow
     source: ./tests
     # API query describing the workflow behavior (could be serialized with `yarn: script: tests` to avoid typing gql queries)
@@ -57,7 +58,7 @@ workflows:
   # The dev.sh script simply runs "yarn install && yarn start"
   # the only advantage here is to run it from a container instead of on the host
   # run: dagger do dev
-  - name: dev
+  dev:
     # source could be omitted if defaults to "."?
     source: "."
     query:
@@ -66,7 +67,7 @@ workflows:
         - script: start
 
   # run: dagger do deploy
-  - name: deploy
+  deploy:
     source: "."
     # Shortcut for `{ core { deployDocs(src: $source) } }`
     query: |
