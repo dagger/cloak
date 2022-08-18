@@ -6,17 +6,17 @@ import (
 	"github.com/moby/buildkit/client/llb"
 )
 
-var _ router.ExecutableSchema = &gitSchema{}
+var _ router.ExecutableSchema = &containerssSchema{}
 
-type gitSchema struct {
+type containerssSchema struct {
 	*baseSchema
 }
 
-func (g *gitSchema) Name() string {
+func (g *containerssSchema) Name() string {
 	return "git"
 }
 
-func (g *gitSchema) Schema() string {
+func (g *containerssSchema) Schema() string {
 	return `
 	extend type Query {
 		"Built-in git capabilities"
@@ -38,7 +38,7 @@ func (g *gitSchema) Schema() string {
 }
 
 // FIXME: will be deprecated by improved client stub generation
-func (g *gitSchema) Operations() string {
+func (g *containerssSchema) Operations() string {
 	return `
 	query Pull($remote: String!, $ref: String!) {
 		git {
@@ -52,7 +52,7 @@ func (g *gitSchema) Operations() string {
 	`
 }
 
-func (g *gitSchema) Resolvers() router.Resolvers {
+func (g *containerssSchema) Resolvers() router.Resolvers {
 	return router.Resolvers{
 		"Query": router.ObjectResolver{
 			"git": nopStruct,
@@ -66,7 +66,7 @@ func (g *gitSchema) Resolvers() router.Resolvers {
 	}
 }
 
-func (g *gitSchema) Dependencies() []router.ExecutableSchema {
+func (g *containerssSchema) Dependencies() []router.ExecutableSchema {
 	return nil
 }
 
@@ -75,7 +75,7 @@ func nopStruct(p graphql.ResolveParams) (any, error) {
 	return struct{}{}, nil
 }
 
-func (g *gitSchema) remote(p graphql.ResolveParams) (any, error) {
+func (g *containerssSchema) remote(p graphql.ResolveParams) (any, error) {
 	url, _ := p.Args["url"].(string)
 
 	return gitRemote{
@@ -87,7 +87,7 @@ type gitRemote struct {
 	url string
 }
 
-func (g *gitSchema) remotePull(p graphql.ResolveParams) (any, error) {
+func (g *containerssSchema) remotePull(p graphql.ResolveParams) (any, error) {
 	ref, _ := p.Args["ref"].(string)
 	remote := p.Source.(gitRemote)
 	st := llb.Git(remote.url, ref)

@@ -22,7 +22,7 @@ func New(r *router.Router, secretStore *secret.Store, gw bkgw.Client, platform s
 	return router.Merge("core",
 		&coreSchema{base},
 
-		&gitSchema{base},
+		&containerssSchema{base},
 		&filesystemSchema{base},
 		&extensionSchema{baseSchema: base, compiledSchemas: make(map[string]*extension.CompiledRemoteSchema)},
 		&execSchema{base},
