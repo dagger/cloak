@@ -67,13 +67,13 @@ func (s *ociSchema) Resolvers() router.Resolvers {
 			"oci": nopStruct,
 		},
 		"OCI": router.ObjectResolver{
-			"repository": g.repository,
+			"repository": s.repository,
 		},
 		"ContainerRepository": router.ObjectResolver{
-			"tag": g.tag,
+			"tag": s.tag,
 		},
 		"ContainerTag": router.ObjectResolver{
-			"pull": g.pull
+			"pull": s.pull
 		},
 	}
 }

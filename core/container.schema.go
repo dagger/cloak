@@ -1,9 +1,9 @@
 package core
 
 import (
+	"github.com/dagger/cloak/core/filesystem"
 	"github.com/dagger/cloak/router"
 	"github.com/graphql-go/graphql"
-	"github.com/moby/buildkit/client/llb"
 )
 
 var _ router.ExecutableSchema = &containerSchema{}
@@ -22,15 +22,11 @@ func (s *containerSchema) Schema() string {
 	type Container {
 		"Root filesystem of the container"
 		rootfs: Filesystem!
-	
-		//		"Raw container configuration (json-encoded)"
-		//		rawConfig: String!
+	}
 
-		//		user: String
-		//		workdir: String
-
-		// FIXME: move exec to Container
-		//		exec: Exec(args: [String!]!
+	extend type Filesystem {
+		"Create a new container from a root filesystem"
+		newContainer: Container!
 	}
 	`
 }
@@ -43,13 +39,20 @@ func (s *containerSchema) Operations() string {
 func (s *containerSchema) Resolvers() router.Resolvers {
 	return router.Resolvers{
 		"Container": router.ObjectResolver{
-			"rootfs": g.rootfs
+			"rootfs": s.rootfs,
 		},
+		"Filesystem": router.ObjectResolver{
+			"newContainer": s.newContainer,
+		}
 	}
 }
 
 func (s *containerSchema) Dependencies() []router.ExecutableSchema {
 	return nil
+}
+
+func (s *containerSchema) newContainer(p graphql.ResolveParams) (any, error) {
+	
 }
 
 func (s *containerSchema) rootfs(p graphql.ResolveParams) (any, error) {
