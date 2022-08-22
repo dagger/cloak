@@ -16,7 +16,8 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test --passWithNoTests -- --no-watchman --all",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "deploy": "yarn --cwd workflows build && cd ../../.. && node examples/todoapp/app/workflows/dist/index.js"
   },
   "eslintConfig": {
     "extends": "react-app"
