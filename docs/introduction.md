@@ -27,9 +27,9 @@ The Dagger API is a graphql-compatible API for composing and running powerful pi
 
 ### API extensions
 
-Developers can write an *API extensions* to add new capabilities to the Dagger API.
- 
-API extensions are the killer feature of Dagger. They ensure that as a workflow grows and evolves, it can remain simple and small, by *breaking up its logic into reusable components*. 
+Developers can write an _API extensions_ to add new capabilities to the Dagger API.
+
+API extensions are the killer feature of Dagger. They ensure that as a workflow grows and evolves, it can remain simple and small, by _breaking up its logic into reusable components_.
 
 API extensions are fully sandboxed, so they can be safely shared and reused between projects.
 
@@ -48,7 +48,7 @@ There are 4 dimensions to using Dagger:
 
 In Dagger, a workflow is simply software that calls the Dagger API.
 
-A workflow can be written in any programming language; and written *very easily* in any language for which a Dagger SDK is available. Currently Dagger provides SDKs for Bash, Go and Typescript.
+A workflow can be written in any programming language; and written _very easily_ in any language for which a Dagger SDK is available. Currently Dagger provides SDKs for Bash, Go and Typescript.
 
 The main benefit of using a Dagger SDK is:
 
@@ -62,7 +62,7 @@ graph LR;
 
   dev((workflow developer))
   sdk["SDK (Go, Typescript, Bash)"]
-  
+
   subgraph "project directory"
     projectFile[cloak.yaml]
 	subgraph workflows
@@ -88,7 +88,6 @@ This makes Dagger very easy to embed in existing projects with minimal disruptio
 
 When a workflow is run, it simply queries the Dagger API in the usual way: all extension types are loaded and available to be queried.
 
-
 ```mermaid
 graph LR;
 
@@ -112,7 +111,7 @@ subgraph "Host OS"
 	subgraph engine
 	io[Host I/O]
 	api((Dagger API)) --> yarn & netlify & git & oci & vercel & alpine
-	
+
 	yarn & netlify & git & oci & vercel & alpine -.-> api
 		subgraph extensions
 				yarn[Yarn]
@@ -153,7 +152,7 @@ subgraph "Host OS"
 				alpine[Alpine Linux]
 		end
 
-		
+
 	end
 end
 
@@ -165,92 +164,70 @@ cli & curl -. graphql queries .-> api
 browser -. runs .-> playground -. graphql queries .-> api
 ```
 
-
 ### Writing an API extension
 
 Signs that it may be time to write an extension:
 
-* Your workflow is growing larger and more complex, and is becoming harder to develop
-* The same logic is duplicated across workflows, and there's no practical way to share it
+- Your workflow is growing larger and more complex, and is becoming harder to develop
+- The same logic is duplicated across workflows, and there's no practical way to share it
 
-Writing an extension is more advanced than writing a workflow, because in addition to being a GraphQL client, it must also implement some parts of a GraphQL *server*. However, Dagger SDKs greatly simplify the process, and after learning a few basic GraphQL concepts, it is quite fun.
+Writing an extension is more advanced than writing a workflow, because in addition to being a GraphQL client, it must also implement some parts of a GraphQL _server_. However, Dagger SDKs greatly simplify the process, and after learning a few basic GraphQL concepts, it is quite fun.
 
-* Just like workflows, extensions can be written in any language; and written *easily* with a Dagger SDK.
+- Just like workflows, extensions can be written in any language; and written _easily_ with a Dagger SDK.
 
-* Unlike workflows, extensions are fully sandboxed and cannot access the host system.
+- Unlike workflows, extensions are fully sandboxed and cannot access the host system.
 
 [Learn more about writing extensions](writing_extensions.md)
 
 ## Project File examples
 
-### Todo App (the hard way, no extensions)
+### Todo App (the hard way, no dependencies)
 
 ```yaml
-workflows:
-	build: 
-		source: ./workflows/build
-		sdk: bash
-	deploy:
-		source: ./workflows/deploy
-		sdk: go
+name: todoapp
 ```
 
-### Todo App (with extensions)
+### Todo App (with dependencies)
 
 ```yaml
-workflows:
-	build: 
-		source: ./workflows/build
-		sdk: bash
-		dependencies:
-			- yarn
-	deploy:
-		source: ./workflows/deploy
-		sdk: go
-		dependencies:
-			- yarn
-			- netlify
+name: todoapp
+dependencies:
+  - yarn
+  - netlify
 ```
 
 ### Todo App (advanced)
 
 In this version of Todo App, custom build and deployment logic has been moved into an extension.
 
-* Note that workflows no longer have dependencies (a project's own extensions are always loaded)
-
-* Note that the `deploy` workflow is now a shell script, since it's now much simpler and more people on the team are comfortable with bash than go.
+- Note that the `deploy` workflow is now a shell script, since it's now much simpler and more people on the team are comfortable with bash than go.
 
 ```yaml
-workflows:
-	build: 
-		source: build.sh
-		sdk: bash
-	deploy:
-		source: deploy.sh
-		sdk: bash
-
-extensions:
-	-
-		source: ./dagger/extensions
-		sdk: go
-		dependencies:
-			- yarn
-			- netlify
-			- aws/s3
+name: todoapp
+sources:
+  - path: ./dagger/extensions
+    sdk: go
+dependencies:
+  - yarn
+  - netlify
+  - aws/s3
 ```
 
 ### Netlify extension
 
 Here we imagine the source code of the "netlify" extension with some types implemented in Go, and others in Typescript (probably not a good idea).
 
-Note that this project combines two extensions. If it is used as a dependency, both extensions will be included. 
+Note that this project combines two extensions. If it is used as a dependency, both extensions will be included.
 
 ```yaml
-extensions:
-	-
-		source: ./ts
-		sdk: typescript
-	-
-		source: ./go
-		sdk: go
+name: todoapp
+sources:
+  - path: ./ts
+    sdk: typescript
+  - path: ./go
+    sdk: go
+dependencies:
+  - yarn
+  - netlify
+  - aws/s3
 ```
