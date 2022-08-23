@@ -1192,8 +1192,9 @@
   resolved "https://registry.yarnpkg.com/@csstools/selector-specificity/-/selector-specificity-2.0.2.tgz#1bfafe4b7ed0f3e4105837e056e0a89b108ebe36"
   integrity sha512-IkpVW/ehM1hWKln4fCA3NzJU8KwD+kIOvPZA4cqxoJHtE21CCzjyp+Kxbu0i5I4tBNOlXPL9mjwnWlL0VEG4Fg==
 
-"@dagger.io/dagger@../../../sdk/nodejs/dagger":
+"@dagger.io/dagger@git+ssh://git@github.com:sipsma/cloak-nodejs-sdk.git#main":
   version "1.0.0"
+  resolved "git+ssh://git@github.com:sipsma/cloak-nodejs-sdk.git#c409bec21237d6f4e7ebb65b1d70165d28329208"
   dependencies:
     "@lifeomic/axios-fetch" "^3.0.0"
     axios "^0.27.2"

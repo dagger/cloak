@@ -35,6 +35,6 @@
     ]
   },
   "devDependencies": {
-    "@dagger.io/dagger": "../../../sdk/nodejs/dagger"
+    "@dagger.io/dagger": "git+ssh://git@github.com:sipsma/cloak-nodejs-sdk.git#main"
   }
 }
