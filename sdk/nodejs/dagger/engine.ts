@@ -1,8 +1,10 @@
 import axios from "axios";
 import { execa } from "execa";
 import { GraphQLClient } from "graphql-request";
+import path from "path";
 
 export interface EngineOptions {
+  ConfigDir: string;
   LocalDirs?: Record<string, string>;
   Port?: number;
 }
@@ -18,8 +20,11 @@ export class Engine {
     const args = ["dev"];
     // add local dirs from config in the form of `--local-dir <name>=<path>`
     if (this.config.LocalDirs) {
-      for (const [name, path] of Object.entries(this.config.LocalDirs)) {
-        args.push("--local-dir", `${name}=${path}`);
+      for (var [name, localDir] of Object.entries(this.config.LocalDirs)) {
+        if (!path.isAbsolute(localDir)) {
+          localDir = path.resolve(localDir);
+        }
+        args.push("--local-dir", `${name}=${localDir}`);
       }
     }
     // add port from config in the form of `--port <port>`, defaulting to 8080
@@ -30,6 +35,7 @@ export class Engine {
 
     const serverProc = execa("cloak", args, {
       stdio: "inherit",
+      cwd: this.config.ConfigDir,
     });
 
     // use axios-fetch to try connecting to the server until successful

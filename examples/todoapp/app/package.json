@@ -17,7 +17,7 @@
     "build": "react-scripts build",
     "test": "react-scripts test --passWithNoTests -- --no-watchman --all",
     "eject": "react-scripts eject",
-    "deploy": "yarn --cwd workflows build && cd ../../.. && node examples/todoapp/app/workflows/dist/index.js"
+    "deploy": "node workflows/build/index.mjs"
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -33,5 +33,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@dagger.io/dagger": "../../../sdk/nodejs/dagger"
   }
 }
