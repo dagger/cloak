@@ -18,10 +18,10 @@ var devCmd = &cobra.Command{
 func Dev(cmd *cobra.Command, args []string) {
 	localDirs := getKVInput(localDirsInput)
 	localDirs[projectContextLocalName] = projectContext
-	localDirs[engine.WorkdirID] = workdir
 	startOpts := &engine.Config{
 		LocalDirs: localDirs,
 		DevServer: devServerPort,
+		Workdir:   workdir,
 	}
 
 	err := engine.Start(context.Background(), startOpts, func(ctx context.Context) error {

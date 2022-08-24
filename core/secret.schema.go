@@ -66,6 +66,11 @@ func (s *secretSchema) Operations() string {
 			secret(id: $id)
 		}
 	}
+	query AddSecret($plaintext: String!) {
+		core {
+			addSecret(plaintext: $plaintext)
+		}
+	}
 	`
 }
 

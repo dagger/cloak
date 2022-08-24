@@ -27,14 +27,14 @@ import (
 )
 
 // FIXME:(sipsma) not sure where this should go
-// FIXME:(sipsma) the workdir probably should be an arg to engine.Config if it's defined here?
 const (
-	WorkdirID = ".workdir"
+	workdirID = ".workdir"
 )
 
 type Config struct {
 	LocalDirs map[string]string
 	DevServer int
+	Workdir   string
 }
 
 type StartCallback func(ctx context.Context) error
@@ -90,6 +90,7 @@ func Start(ctx context.Context, startOpts *Config, fn StartCallback) error {
 			socketProviders,
 		},
 	}
+	startOpts.LocalDirs[workdirID] = startOpts.Workdir
 	solveOpts.LocalDirs = startOpts.LocalDirs
 
 	ch := make(chan *bkclient.SolveStatus)
@@ -97,7 +98,7 @@ func Start(ctx context.Context, startOpts *Config, fn StartCallback) error {
 	eg.Go(func() error {
 		var err error
 		_, err = c.Build(ctx, solveOpts, "", func(ctx context.Context, gw bkgw.Client) (*bkgw.Result, error) {
-			coreAPI, err := core.New(router, secretStore, sshAuthSockID, WorkdirID, gw, c, solveOpts, ch, *platform)
+			coreAPI, err := core.New(router, secretStore, sshAuthSockID, workdirID, gw, c, solveOpts, ch, *platform)
 			if err != nil {
 				return nil, err
 			}
