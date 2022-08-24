@@ -17,7 +17,8 @@
     "build": "react-scripts build",
     "test": "react-scripts test --passWithNoTests -- --no-watchman --all",
     "eject": "react-scripts eject",
-    "cloaktest": "node workflows/build/index.mjs"
+    "cloaktest": "node workflows/build/index.mjs",
+    "deploy": "go run $(pwd)/workflows/deploy/main.go"
   },
   "eslintConfig": {
     "extends": "react-app"
