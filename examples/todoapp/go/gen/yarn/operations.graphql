@@ -1,7 +1,0 @@
-query Script($source: FSID!, $name: String!) {
-  yarn {
-    script(source: $source, name: $name) {
-      id
-    }
-  }
-}
