@@ -4,9 +4,10 @@ import { GraphQLClient } from "graphql-request";
 import path from "path";
 
 export interface EngineOptions {
-  ConfigDir: string;
   LocalDirs?: Record<string, string>;
   Port?: number;
+  Workdir?: string;
+  ConfigPath: string;
 }
 
 export class Engine {
@@ -19,8 +20,14 @@ export class Engine {
   async run(cb: (client: GraphQLClient) => Promise<void>) {
     const args = ["dev"];
 
-    // add the workdir (as the cloak dev command will be running in ConfigDir, which isn't necessarily the same)
-    args.push("--workdir", process.cwd());
+    if (!this.config.Workdir) {
+      this.config.Workdir = process.cwd();
+    }
+    args.push("--workdir", `${this.config.Workdir}`);
+    if (!this.config.ConfigPath) {
+      this.config.ConfigPath = "./cloak.yml";
+    }
+    args.push("-p", `${this.config.ConfigPath}`);
 
     // add local dirs from config in the form of `--local-dir <name>=<path>`
     if (this.config.LocalDirs) {
@@ -39,7 +46,7 @@ export class Engine {
 
     const serverProc = execa("cloak", args, {
       stdio: "inherit",
-      cwd: this.config.ConfigDir,
+      cwd: this.config.Workdir,
     });
 
     // use axios-fetch to try connecting to the server until successful

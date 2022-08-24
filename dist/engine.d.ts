@@ -1,8 +1,9 @@
 import { GraphQLClient } from "graphql-request";
 export interface EngineOptions {
-    ConfigDir: string;
     LocalDirs?: Record<string, string>;
     Port?: number;
+    Workdir?: string;
+    ConfigPath: string;
 }
 export declare class Engine {
     private config;

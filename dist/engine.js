@@ -8,8 +8,14 @@ export class Engine {
     }
     async run(cb) {
         const args = ["dev"];
-        // add the workdir (as the cloak dev command will be running in ConfigDir, which isn't necessarily the same)
-        args.push("--workdir", process.cwd());
+        if (!this.config.Workdir) {
+            this.config.Workdir = process.cwd();
+        }
+        args.push("--workdir", `${this.config.Workdir}`);
+        if (!this.config.ConfigPath) {
+            this.config.ConfigPath = "./cloak.yml";
+        }
+        args.push("-p", `${this.config.ConfigPath}`);
         // add local dirs from config in the form of `--local-dir <name>=<path>`
         if (this.config.LocalDirs) {
             for (var [name, localDir] of Object.entries(this.config.LocalDirs)) {
@@ -26,7 +32,7 @@ export class Engine {
         args.push("--port", `${this.config.Port}`);
         const serverProc = execa("cloak", args, {
             stdio: "inherit",
-            cwd: this.config.ConfigDir,
+            cwd: this.config.Workdir,
         });
         // use axios-fetch to try connecting to the server until successful
         // FIXME:(sipsma) hardcoding that the server has 60 seconds to import+install all extensions...
