@@ -20,25 +20,19 @@ var generateCmd = &cobra.Command{
 }
 
 func Generate(cmd *cobra.Command, args []string) {
-	localDirs := map[string]string{
-		projectContextLocalName: projectContext,
-	}
 	startOpts := &engine.Config{
-		LocalDirs: localDirs,
+		Workdir:     workdir,
+		ConfigPath:  configPath,
+		SkipInstall: true,
 	}
 
-	err := engine.Start(context.Background(), startOpts, func(ctx context.Context) error {
+	err := engine.Start(context.Background(), startOpts, func(ctx context.Context, _ string, localDirs map[string]dagger.FSID) error {
 		cl, err := dagger.Client(ctx)
 		if err != nil {
 			return err
 		}
 
-		localDirs, err := loadLocalDirs(ctx, cl, localDirs)
-		if err != nil {
-			return err
-		}
-
-		project, err := loadProject(ctx, cl, localDirs[projectContextLocalName])
+		project, err := loadProject(ctx, cl, localDirs[engine.WorkdirID])
 		if err != nil {
 			return err
 		}
@@ -132,7 +126,7 @@ func loadProject(ctx context.Context, cl graphql.Client, contextFS dagger.FSID) 
 			}`,
 			Variables: map[string]any{
 				"fs":         contextFS,
-				"configPath": projectFile,
+				"configPath": configPath,
 			},
 		},
 		resp,

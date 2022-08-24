@@ -6,7 +6,9 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sync"
 
+	"github.com/Khan/genqlient/graphql"
 	"github.com/containerd/containerd/platforms"
 	"github.com/dagger/cloak/core"
 	"github.com/dagger/cloak/extension"
@@ -27,12 +29,21 @@ import (
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // import the docker connection driver
 )
 
+// FIXME:(sipsma) not sure where this should go, but if stays here should not be public
+const (
+	WorkdirID = ".workdir"
+)
+
 type Config struct {
-	LocalDirs map[string]string
-	DevServer int
+	LocalDirs   map[string]string
+	DevServer   int
+	Workdir     string
+	ConfigPath  string
+	SkipInstall bool // FIXME:(sipsma) ugly, needed for generate at the moment, probably should split engine to this implementation and one in the go sdk where this difference can be handled more cleanly
 }
 
-type StartCallback func(ctx context.Context) error
+// FIXME:(sipsma) make struct for all metadata to pass back (client, operations, schema, localdirs, etc.)
+type StartCallback func(ctx context.Context, operations string, localDirs map[string]dagger.FSID) error
 
 func Start(ctx context.Context, startOpts *Config, fn StartCallback) error {
 	if startOpts == nil {
@@ -86,6 +97,10 @@ func Start(ctx context.Context, startOpts *Config, fn StartCallback) error {
 			authprovider.NewDockerAuthProvider(os.Stderr),
 		},
 	}
+	if startOpts.LocalDirs == nil {
+		startOpts.LocalDirs = make(map[string]string)
+	}
+	startOpts.LocalDirs[WorkdirID] = startOpts.Workdir
 	solveOpts.LocalDirs = startOpts.LocalDirs
 
 	ch := make(chan *bkclient.SolveStatus)
@@ -103,11 +118,30 @@ func Start(ctx context.Context, startOpts *Config, fn StartCallback) error {
 
 			ctx = withInMemoryAPIClient(ctx, router)
 
+			cl, err := dagger.Client(ctx)
+			if err != nil {
+				return nil, err
+			}
+
+			localDirMapping, err := loadLocalDirs(ctx, cl, startOpts.LocalDirs)
+			if err != nil {
+				return nil, err
+			}
+
+			var operations string
+			if !startOpts.SkipInstall {
+				defaultOperations, err := installProject(ctx, cl, localDirMapping[WorkdirID], startOpts.ConfigPath)
+				if err != nil {
+					return nil, err
+				}
+				operations = defaultOperations
+			}
+
 			if fn == nil {
 				return nil, nil
 			}
 
-			if err := fn(ctx); err != nil {
+			if err := fn(ctx, operations, localDirMapping); err != nil {
 				return nil, err
 			}
 
@@ -162,4 +196,92 @@ func detectPlatform(ctx context.Context, c *bkclient.Client) (*specs.Platform, e
 	}
 	defaultPlatform := platforms.DefaultSpec()
 	return &defaultPlatform, nil
+}
+
+func loadLocalDirs(ctx context.Context, cl graphql.Client, localDirs map[string]string) (map[string]dagger.FSID, error) {
+	var eg errgroup.Group
+	var l sync.Mutex
+
+	mapping := map[string]dagger.FSID{}
+	for localID := range localDirs {
+		localID := localID
+		eg.Go(func() error {
+			res := struct {
+				Core struct {
+					Clientdir struct {
+						ID dagger.FSID
+					}
+				}
+			}{}
+			resp := &graphql.Response{Data: &res}
+
+			err := cl.MakeRequest(ctx,
+				&graphql.Request{
+					Query: `
+						query ClientDir($id: String!) {
+							core {
+								clientdir(id: $id) {
+									id
+								}
+							}
+						}
+					`,
+					Variables: map[string]any{
+						"id": localID,
+					},
+				},
+				resp,
+			)
+			if err != nil {
+				return err
+			}
+
+			l.Lock()
+			mapping[localID] = res.Core.Clientdir.ID
+			l.Unlock()
+
+			return nil
+		})
+	}
+
+	return mapping, eg.Wait()
+}
+
+func installProject(ctx context.Context, cl graphql.Client, contextFS dagger.FSID, configPath string) (operations string, rerr error) {
+	res := struct {
+		Core struct {
+			Filesystem struct {
+				LoadExtension struct {
+					Operations string
+				}
+			}
+		}
+	}{}
+	resp := &graphql.Response{Data: &res}
+
+	err := cl.MakeRequest(ctx,
+		&graphql.Request{
+			Query: `
+			query LoadExtension($fs: FSID!, $configPath: String!) {
+				core {
+					filesystem(id: $fs) {
+						loadExtension(configPath: $configPath) {
+							install
+							operations
+						}
+					}
+				}
+			}`,
+			Variables: map[string]any{
+				"fs":         contextFS,
+				"configPath": configPath,
+			},
+		},
+		resp,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	return res.Core.Filesystem.LoadExtension.Operations, nil
 }

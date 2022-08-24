@@ -17,27 +17,14 @@ var devCmd = &cobra.Command{
 
 func Dev(cmd *cobra.Command, args []string) {
 	localDirs := getKVInput(localDirsInput)
-	localDirs[projectContextLocalName] = projectContext
 	startOpts := &engine.Config{
-		LocalDirs: localDirs,
-		DevServer: devServerPort,
+		LocalDirs:  localDirs,
+		DevServer:  devServerPort,
+		Workdir:    workdir,
+		ConfigPath: configPath,
 	}
 
-	err := engine.Start(context.Background(), startOpts, func(ctx context.Context) error {
-		cl, err := dagger.Client(ctx)
-		if err != nil {
-			return err
-		}
-
-		localDirMapping, err := loadLocalDirs(ctx, cl, localDirs)
-		if err != nil {
-			return err
-		}
-
-		if _, err := installProject(ctx, cl, localDirMapping[projectContextLocalName]); err != nil {
-			return err
-		}
-
+	err := engine.Start(context.Background(), startOpts, func(ctx context.Context, _ string, _ map[string]dagger.FSID) error {
 		return nil
 	})
 	if err != nil {

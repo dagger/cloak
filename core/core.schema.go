@@ -47,6 +47,22 @@ func (r *coreSchema) Operations() string {
 			}
 		}
 	}
+	query Workdir() {
+		host {
+			workdir {
+				read {
+					id
+				}
+			}
+		}
+	}
+	query WriteWorkdir($contents: FSID!) {
+		host {
+			workdir {
+				write(contents: $contents)
+			}
+		}
+	}
 	`
 }
 
