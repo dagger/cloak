@@ -256,7 +256,7 @@ func (s *CompiledRemoteSchema) resolver(runtimeFS *filesystem.Filesystem) graphq
 			return nil, err
 		}
 
-		st := fsState.Run(
+		runOpts := []llb.RunOption{
 			llb.Args([]string{entrypointPath}),
 			llb.AddSSHSocket(
 				llb.SSHID(DaggerSockName),
@@ -265,7 +265,9 @@ func (s *CompiledRemoteSchema) resolver(runtimeFS *filesystem.Filesystem) graphq
 			llb.AddMount(inputMountPath, input, llb.Readonly),
 			llb.AddMount(tmpMountPath, llb.Scratch(), llb.Tmpfs()),
 			llb.ReadonlyRootFS(),
-		)
+		}
+
+		st := fsState.Run(runOpts...)
 
 		// TODO: /mnt should maybe be configurable?
 		for path, fsid := range collectFSPaths(p.Args, fsMountPath, nil) {

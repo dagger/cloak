@@ -18,6 +18,10 @@ export class Engine {
 
   async run(cb: (client: GraphQLClient) => Promise<void>) {
     const args = ["dev"];
+
+    // add the workdir (as the cloak dev command will be running in ConfigDir, which isn't necessarily the same)
+    args.push("--workdir", process.cwd());
+
     // add local dirs from config in the form of `--local-dir <name>=<path>`
     if (this.config.LocalDirs) {
       for (var [name, localDir] of Object.entries(this.config.LocalDirs)) {

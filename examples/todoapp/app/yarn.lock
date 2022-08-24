@@ -1194,7 +1194,7 @@
 
 "@dagger.io/dagger@git+ssh://git@github.com:sipsma/cloak-nodejs-sdk.git#main":
   version "1.0.0"
-  resolved "git+ssh://git@github.com:sipsma/cloak-nodejs-sdk.git#c409bec21237d6f4e7ebb65b1d70165d28329208"
+  resolved "git+ssh://git@github.com:sipsma/cloak-nodejs-sdk.git#c75e026ee5b329e041a36b6e71f7006e5f660ee8"
   dependencies:
     "@lifeomic/axios-fetch" "^3.0.0"
     axios "^0.27.2"

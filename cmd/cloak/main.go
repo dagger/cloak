@@ -11,6 +11,7 @@ import (
 var (
 	projectFile    string
 	projectContext string
+	workdir        string
 
 	queryFile      string
 	queryVarsInput []string
@@ -26,6 +27,7 @@ var (
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&projectContext, "context", "c", ".", "project context")
 	rootCmd.PersistentFlags().StringVarP(&projectFile, "project", "p", "./cloak.yaml", "project config file")
+	rootCmd.PersistentFlags().StringVar(&workdir, "workdir", ".", "workdir as passed to workflows")
 	rootCmd.AddCommand(
 		doCmd,
 		generateCmd,

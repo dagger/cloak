@@ -7,20 +7,25 @@ import (
 	"github.com/dagger/cloak/extension"
 	"github.com/dagger/cloak/router"
 	"github.com/dagger/cloak/secret"
+	bkclient "github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
 	bkgw "github.com/moby/buildkit/frontend/gateway/client"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-func New(r *router.Router, secretStore *secret.Store, sshAuthSockID string, gw bkgw.Client, platform specs.Platform) (router.ExecutableSchema, error) {
+// FIXME:(sipsma) waaayyy too many args
+func New(r *router.Router, secretStore *secret.Store, sshAuthSockID, workdirID string, gw bkgw.Client, c *bkclient.Client, solveOpts bkclient.SolveOpt, solveCh chan *bkclient.SolveStatus, platform specs.Platform) (router.ExecutableSchema, error) {
 	base := &baseSchema{
 		router:      r,
 		secretStore: secretStore,
 		gw:          gw,
+		bkclient:    c,
+		solveOpts:   solveOpts,
+		solveCh:     solveCh,
 		platform:    platform,
 	}
 	return router.MergeExecutableSchemas("core",
-		&coreSchema{base, sshAuthSockID},
+		&coreSchema{base, sshAuthSockID, workdirID},
 
 		&filesystemSchema{base},
 		&extensionSchema{
@@ -28,7 +33,7 @@ func New(r *router.Router, secretStore *secret.Store, sshAuthSockID string, gw b
 			compiledSchemas: make(map[string]*extension.CompiledRemoteSchema),
 			sshAuthSockID:   sshAuthSockID,
 		},
-		&execSchema{base},
+		&execSchema{base, sshAuthSockID},
 		&dockerBuildSchema{base},
 
 		&secretSchema{base},
@@ -39,6 +44,9 @@ type baseSchema struct {
 	router      *router.Router
 	secretStore *secret.Store
 	gw          bkgw.Client
+	bkclient    *bkclient.Client
+	solveOpts   bkclient.SolveOpt
+	solveCh     chan *bkclient.SolveStatus
 	platform    specs.Platform
 }
 
