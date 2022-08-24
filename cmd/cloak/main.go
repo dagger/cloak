@@ -19,6 +19,8 @@ var (
 
 	generateOutputDir string
 	sdkType           string // TODO: enum?
+	generateClients   bool
+	generateImpl      bool
 
 	devServerPort int
 )
@@ -39,6 +41,8 @@ func init() {
 
 	generateCmd.Flags().StringVar(&generateOutputDir, "output-dir", "./", "output directory")
 	generateCmd.Flags().StringVar(&sdkType, "sdk", "", "sdk type to generate code for ('go', 'ts', etc.)")
+	generateCmd.Flags().BoolVar(&generateClients, "client", false, "generate client stub code")
+	generateCmd.Flags().BoolVar(&generateImpl, "impl", false, "generate implementation skeleton code")
 
 	devCmd.Flags().IntVar(&devServerPort, "port", 8080, "dev server port")
 	devCmd.Flags().StringSliceVarP(&localDirsInput, "local-dir", "l", []string{}, "local directory to import")

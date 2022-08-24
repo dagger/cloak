@@ -37,48 +37,52 @@ func Generate(cmd *cobra.Command, args []string) {
 			return err
 		}
 
-		switch sdkType {
-		case "go":
-			if err := generateGoImplStub(ext, coreExt); err != nil {
-				return err
-			}
-		case "":
-		default:
-			return fmt.Errorf("unknown sdk type %s", sdkType)
-		}
-
-		for _, dep := range append(ext.Dependencies, coreExt) {
-			subdir := filepath.Join(generateOutputDir, "gen", dep.Name)
-			if err := os.MkdirAll(subdir, 0755); err != nil {
-				return err
-			}
-			if err := os.WriteFile(filepath.Join(subdir, ".gitattributes"), []byte("** linguist-generated=true"), 0600); err != nil {
-				return err
-			}
-			schemaPath := filepath.Join(subdir, "schema.graphql")
-
-			// TODO:(sipsma) ugly hack to make each schema/operation work independently when referencing core types.
-			fullSchema := dep.Schema
-			if dep.Name != "core" {
-				fullSchema = coreExt.Schema + "\n\n" + fullSchema
-			}
-			if err := os.WriteFile(schemaPath, []byte(fullSchema), 0600); err != nil {
-				return err
-			}
-			operationsPath := filepath.Join(subdir, "operations.graphql")
-			if err := os.WriteFile(operationsPath, []byte(dep.Operations), 0600); err != nil {
-				return err
-			}
-
+		if generateImpl {
 			switch sdkType {
 			case "go":
-				if err := generateGoClientStubs(subdir); err != nil {
+				if err := generateGoImplStub(ext, coreExt); err != nil {
 					return err
 				}
 			case "":
 			default:
-				fmt.Fprintf(os.Stderr, "Error: unknown sdk type %s\n", sdkType)
-				os.Exit(1)
+				return fmt.Errorf("unknown sdk type %s", sdkType)
+			}
+		}
+
+		if generateClients {
+			for _, dep := range append(ext.Dependencies, coreExt) {
+				subdir := filepath.Join(generateOutputDir, "gen", dep.Name)
+				if err := os.MkdirAll(subdir, 0755); err != nil {
+					return err
+				}
+				if err := os.WriteFile(filepath.Join(subdir, ".gitattributes"), []byte("** linguist-generated=true"), 0600); err != nil {
+					return err
+				}
+				schemaPath := filepath.Join(subdir, "schema.graphql")
+
+				// TODO:(sipsma) ugly hack to make each schema/operation work independently when referencing core types.
+				fullSchema := dep.Schema
+				if dep.Name != "core" {
+					fullSchema = coreExt.Schema + "\n\n" + fullSchema
+				}
+				if err := os.WriteFile(schemaPath, []byte(fullSchema), 0600); err != nil {
+					return err
+				}
+				operationsPath := filepath.Join(subdir, "operations.graphql")
+				if err := os.WriteFile(operationsPath, []byte(dep.Operations), 0600); err != nil {
+					return err
+				}
+
+				switch sdkType {
+				case "go":
+					if err := generateGoClientStubs(subdir); err != nil {
+						return err
+					}
+				case "":
+				default:
+					fmt.Fprintf(os.Stderr, "Error: unknown sdk type %s\n", sdkType)
+					os.Exit(1)
+				}
 			}
 		}
 		return nil
