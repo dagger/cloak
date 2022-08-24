@@ -24,8 +24,8 @@ var (
 )
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&configPath, "project", "p", "./cloak.yaml", "cloak config file")
-	rootCmd.PersistentFlags().StringVar(&workdir, "workdir", ".", "workdir as passed to workflows")
+	rootCmd.PersistentFlags().StringVarP(&configPath, "project", "p", "", "cloak config file")
+	rootCmd.PersistentFlags().StringVar(&workdir, "workdir", "", "workdir as passed to workflows")
 	rootCmd.AddCommand(
 		doCmd,
 		generateCmd,

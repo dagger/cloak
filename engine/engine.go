@@ -43,7 +43,7 @@ type Config struct {
 }
 
 // FIXME:(sipsma) make struct for all metadata to pass back (client, operations, schema, localdirs, etc.)
-type StartCallback func(ctx context.Context, operations string, localDirs map[string]dagger.FSID) error
+type StartCallback func(ctx context.Context, ext *core.Extension, localDirs map[string]dagger.FSID) error
 
 func Start(ctx context.Context, startOpts *Config, fn StartCallback) error {
 	if startOpts == nil {
@@ -72,6 +72,26 @@ func Start(ctx context.Context, startOpts *Config, fn StartCallback) error {
 	platform, err := detectPlatform(ctx, c)
 	if err != nil {
 		return err
+	}
+
+	if startOpts.Workdir == "" {
+		if v, ok := os.LookupEnv("CLOAK_WORKDIR"); ok {
+			startOpts.Workdir = v
+		} else {
+			cwd, err := os.Getwd()
+			if err != nil {
+				return err
+			}
+			startOpts.Workdir = cwd
+		}
+	}
+
+	if startOpts.ConfigPath == "" {
+		if v, ok := os.LookupEnv("CLOAK_CONFIG"); ok {
+			startOpts.ConfigPath = v
+		} else {
+			startOpts.ConfigPath = "./cloak.yaml"
+		}
 	}
 
 	router := router.New()
@@ -128,20 +148,17 @@ func Start(ctx context.Context, startOpts *Config, fn StartCallback) error {
 				return nil, err
 			}
 
-			var operations string
-			if !startOpts.SkipInstall {
-				defaultOperations, err := installProject(ctx, cl, localDirMapping[WorkdirID], startOpts.ConfigPath)
-				if err != nil {
-					return nil, err
-				}
-				operations = defaultOperations
+			// FIXME:(sipsma) the naming is very confusing; to be resolved when decision on projects is made
+			ext, err := loadExtension(ctx, cl, localDirMapping[WorkdirID], startOpts.ConfigPath, !startOpts.SkipInstall)
+			if err != nil {
+				return nil, err
 			}
 
 			if fn == nil {
 				return nil, nil
 			}
 
-			if err := fn(ctx, operations, localDirMapping); err != nil {
+			if err := fn(ctx, ext, localDirMapping); err != nil {
 				return nil, err
 			}
 
@@ -247,31 +264,42 @@ func loadLocalDirs(ctx context.Context, cl graphql.Client, localDirs map[string]
 	return mapping, eg.Wait()
 }
 
-func installProject(ctx context.Context, cl graphql.Client, contextFS dagger.FSID, configPath string) (operations string, rerr error) {
+func loadExtension(ctx context.Context, cl graphql.Client, contextFS dagger.FSID, configPath string, doInstall bool) (*core.Extension, error) {
 	res := struct {
 		Core struct {
 			Filesystem struct {
-				LoadExtension struct {
-					Operations string
-				}
+				LoadExtension core.Extension
 			}
 		}
 	}{}
 	resp := &graphql.Response{Data: &res}
 
+	var install string
+	if doInstall {
+		install = "install"
+	}
+
 	err := cl.MakeRequest(ctx,
 		&graphql.Request{
-			Query: `
+			// FIXME:(sipsma) toggling install is extremely weird here, need better way
+			Query: fmt.Sprintf(`
 			query LoadExtension($fs: FSID!, $configPath: String!) {
 				core {
 					filesystem(id: $fs) {
 						loadExtension(configPath: $configPath) {
-							install
+							name
+							schema
 							operations
+							dependencies {
+								name
+								schema
+								operations
+							}
+							%s
 						}
 					}
 				}
-			}`,
+			}`, install),
 			Variables: map[string]any{
 				"fs":         contextFS,
 				"configPath": configPath,
@@ -280,8 +308,8 @@ func installProject(ctx context.Context, cl graphql.Client, contextFS dagger.FSI
 		resp,
 	)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return res.Core.Filesystem.LoadExtension.Operations, nil
+	return &res.Core.Filesystem.LoadExtension, nil
 }

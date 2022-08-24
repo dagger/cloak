@@ -26,13 +26,8 @@ func Generate(cmd *cobra.Command, args []string) {
 		SkipInstall: true,
 	}
 
-	err := engine.Start(context.Background(), startOpts, func(ctx context.Context, _ string, localDirs map[string]dagger.FSID) error {
+	err := engine.Start(context.Background(), startOpts, func(ctx context.Context, ext *core.Extension, localDirs map[string]dagger.FSID) error {
 		cl, err := dagger.Client(ctx)
-		if err != nil {
-			return err
-		}
-
-		project, err := loadProject(ctx, cl, localDirs[engine.WorkdirID])
 		if err != nil {
 			return err
 		}
@@ -44,7 +39,7 @@ func Generate(cmd *cobra.Command, args []string) {
 
 		switch sdkType {
 		case "go":
-			if err := generateGoImplStub(project, coreExt); err != nil {
+			if err := generateGoImplStub(ext, coreExt); err != nil {
 				return err
 			}
 		case "":
@@ -52,7 +47,7 @@ func Generate(cmd *cobra.Command, args []string) {
 			return fmt.Errorf("unknown sdk type %s", sdkType)
 		}
 
-		for _, dep := range append(project.Dependencies, coreExt) {
+		for _, dep := range append(ext.Dependencies, coreExt) {
 			subdir := filepath.Join(generateOutputDir, "gen", dep.Name)
 			if err := os.MkdirAll(subdir, 0755); err != nil {
 				return err
@@ -93,49 +88,6 @@ func Generate(cmd *cobra.Command, args []string) {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
-}
-
-func loadProject(ctx context.Context, cl graphql.Client, contextFS dagger.FSID) (*core.Extension, error) {
-	res := struct {
-		Core struct {
-			Filesystem struct {
-				LoadExtension core.Extension
-			}
-		}
-	}{}
-	resp := &graphql.Response{Data: &res}
-
-	err := cl.MakeRequest(ctx,
-		&graphql.Request{
-			Query: `
-			query LoadExtension($fs: FSID!, $configPath: String!) {
-				core {
-					filesystem(id: $fs) {
-						loadExtension(configPath: $configPath) {
-							name
-							schema
-							operations
-							dependencies {
-								name
-								schema
-								operations
-							}
-						}
-					}
-				}
-			}`,
-			Variables: map[string]any{
-				"fs":         contextFS,
-				"configPath": configPath,
-			},
-		},
-		resp,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return &res.Core.Filesystem.LoadExtension, nil
 }
 
 func loadCore(ctx context.Context, cl graphql.Client) (*core.Extension, error) {

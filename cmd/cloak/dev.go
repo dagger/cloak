@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/dagger/cloak/core"
 	"github.com/dagger/cloak/engine"
 	"github.com/dagger/cloak/sdk/go/dagger"
 	"github.com/spf13/cobra"
@@ -24,7 +25,7 @@ func Dev(cmd *cobra.Command, args []string) {
 		ConfigPath: configPath,
 	}
 
-	err := engine.Start(context.Background(), startOpts, func(ctx context.Context, _ string, _ map[string]dagger.FSID) error {
+	err := engine.Start(context.Background(), startOpts, func(ctx context.Context, _ *core.Extension, _ map[string]dagger.FSID) error {
 		return nil
 	})
 	if err != nil {

@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/Khan/genqlient/graphql"
+	"github.com/dagger/cloak/core"
 	"github.com/dagger/cloak/engine"
 	"github.com/dagger/cloak/sdk/go/dagger"
 	"github.com/spf13/cobra"
@@ -60,7 +61,7 @@ func Do(cmd *cobra.Command, args []string) {
 	}
 
 	var result []byte
-	err := engine.Start(ctx, startOpts, func(ctx context.Context, defaultOperations string, localDirMapping map[string]dagger.FSID) error {
+	err := engine.Start(ctx, startOpts, func(ctx context.Context, ext *core.Extension, localDirMapping map[string]dagger.FSID) error {
 		cl, err := dagger.Client(ctx)
 		if err != nil {
 			return err
@@ -79,7 +80,7 @@ func Do(cmd *cobra.Command, args []string) {
 		}
 
 		if operations == "" {
-			operations = defaultOperations
+			operations = ext.Operations
 		}
 
 		res := make(map[string]interface{})
