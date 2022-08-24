@@ -52,6 +52,7 @@ var _ router.ExecutableSchema = &filesystemSchema{}
 
 type execSchema struct {
 	*baseSchema
+	sshAuthSockID string
 }
 
 func (s *execSchema) Name() string {
@@ -232,6 +233,22 @@ func (s *execSchema) exec(p graphql.ResolveParams) (any, error) {
 	}
 	for _, secretEnv := range input.SecretEnv {
 		runOpt = append(runOpt, llb.AddSecret(secretEnv.Name, llb.SecretID(secretEnv.ID), llb.SecretAsEnv(true)))
+	}
+
+	// FIXME:(sipsma) should not just automatically mount the socket in every execop, needs to be configurable
+	// FIXME:(sipsma) and really realllllyy REAALLLLYYY should not just automatically mount over /root/.ssh (for a number of reasons)
+	if s.sshAuthSockID != "" {
+		runOpt = append(runOpt,
+			llb.AddSSHSocket(
+				llb.SSHID(s.sshAuthSockID),
+				llb.SSHSocketTarget("/ssh-agent.sock"),
+			),
+			llb.AddEnv("SSH_AUTH_SOCK", "/ssh-agent.sock"),
+			llb.AddMount("/root/.ssh",
+				llb.Scratch().File(llb.Mkfile("known_hosts", 0600, []byte(`github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==`))),
+				llb.Readonly,
+			),
+		)
 	}
 
 	st, err := obj.ToState()

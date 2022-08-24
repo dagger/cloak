@@ -108,7 +108,7 @@ func Start(ctx context.Context, startOpts *Config, fn StartCallback) error {
 	eg.Go(func() error {
 		var err error
 		_, err = c.Build(ctx, solveOpts, "", func(ctx context.Context, gw bkgw.Client) (*bkgw.Result, error) {
-			coreAPI, err := core.New(router, secretStore, sshAuthSockID, gw, *platform)
+			coreAPI, err := core.New(router, secretStore, sshAuthSockID, WorkdirID, gw, c, solveOpts, ch, *platform)
 			if err != nil {
 				return nil, err
 			}
