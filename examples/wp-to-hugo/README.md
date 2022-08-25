@@ -17,8 +17,8 @@ These tasks are currently happening in the background, and some of them involve 
 - [x] There is a WP user which is able to access WP admin
 - [ ] 👉 This WP user is able to make authenticated WP REST API requests
 - [ ] This WP user is able to call the https://localhost:8000/wp-admin/export.php?type=hugo equivalent via the REST API
-- [ ] There is an existing GitHub repository with GitHub Pages enabled - I'm thinking `gerhard/cdn`
-- [ ] There is a custom FQDN pointing to this GitHub Pages install - I'm thinking `cdn.gerhard.io`
+- [ ] There is an existing GitHub repository with GitHub Pages enabled - I'm thinking `gerhard/cnd`
+- [ ] There is a custom FQDN pointing to this GitHub Pages install - I'm thinking `cnd.gerhard.io`
 
 ## Manual flow
 
