@@ -42,10 +42,11 @@ const (
 // extension. This allows obtaining the extension metadata without necessarily
 // being able to build it yet.
 type RemoteSchema struct {
-	gw         bkgw.Client
-	platform   specs.Platform
-	contextFS  *filesystem.Filesystem
-	configPath string
+	gw            bkgw.Client
+	platform      specs.Platform
+	contextFS     *filesystem.Filesystem
+	configPath    string
+	sshAuthSockID string
 
 	router.LoadedSchema
 	dependencies []*RemoteSchema
@@ -63,11 +64,12 @@ func Load(ctx context.Context, gw bkgw.Client, platform specs.Platform, contextF
 	}
 
 	s := &RemoteSchema{
-		gw:         gw,
-		platform:   platform,
-		contextFS:  contextFS,
-		configPath: configPath,
-		sources:    cfg.Sources,
+		gw:            gw,
+		platform:      platform,
+		contextFS:     contextFS,
+		configPath:    configPath,
+		sshAuthSockID: sshAuthSockID,
+		sources:       cfg.Sources,
 	}
 
 	sourceSchemas := make([]router.LoadedSchema, len(cfg.Sources))
@@ -156,7 +158,7 @@ func (s RemoteSchema) Compile(ctx context.Context, cache map[string]*CompiledRem
 			case "go":
 				runtimeFS, err = goRuntime(ctx, s.contextFS, s.configPath, src.Path, s.platform, s.gw)
 			case "ts":
-				runtimeFS, err = tsRuntime(ctx, s.contextFS, s.configPath, src.Path, s.platform, s.gw)
+				runtimeFS, err = tsRuntime(ctx, s.contextFS, s.configPath, src.Path, s.platform, s.gw, s.sshAuthSockID)
 			case "dockerfile":
 				runtimeFS, err = dockerfileRuntime(ctx, s.contextFS, s.configPath, src.Path, s.platform, s.gw)
 			default:

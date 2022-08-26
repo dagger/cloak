@@ -6,7 +6,7 @@ export interface EngineOptions {
   LocalDirs?: Record<string, string>;
   Port?: number;
   Workdir?: string;
-  ConfigPath: string;
+  ConfigPath?: string;
 }
 
 export class Engine {
@@ -19,13 +19,14 @@ export class Engine {
   async run(cb: (client: GraphQLClient) => Promise<void>) {
     const args = ["dev"];
 
-    if (!this.config.Workdir) {
-      this.config.Workdir = process.cwd();
-    }
+    this.config = this.config || {};
+
+    this.config.Workdir =
+      this.config.Workdir || process.env["CLOAK_WORKDIR"] || process.cwd();
     args.push("--workdir", `${this.config.Workdir}`);
-    if (!this.config.ConfigPath) {
-      this.config.ConfigPath = "./cloak.yml";
-    }
+
+    this.config.ConfigPath =
+      this.config.ConfigPath || process.env["CLOAK_CONFIG"] || "./cloak.yaml";
     args.push("-p", `${this.config.ConfigPath}`);
 
     // add local dirs from config in the form of `--local-dir <name>=<path>`
@@ -35,9 +36,7 @@ export class Engine {
       }
     }
     // add port from config in the form of `--port <port>`, defaulting to 8080
-    if (!this.config.Port) {
-      this.config.Port = 8080;
-    }
+    this.config.Port = this.config.Port || 8080;
     args.push("--port", `${this.config.Port}`);
 
     const serverProc = execa("cloak", args, {
