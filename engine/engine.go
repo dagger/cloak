@@ -290,6 +290,7 @@ func loadExtension(ctx context.Context, cl graphql.Client, contextFS dagger.FSID
 							name
 							schema
 							operations
+							sdk
 							dependencies {
 								name
 								schema

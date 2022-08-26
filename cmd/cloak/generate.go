@@ -38,26 +38,26 @@ func Generate(cmd *cobra.Command, args []string) {
 		}
 
 		if generateExtension {
-			switch sdkType {
+			switch ext.SDK {
 			case "go":
 				if err := generateGoExtensionStub(ext, coreExt); err != nil {
 					return err
 				}
 			case "":
 			default:
-				return fmt.Errorf("unknown sdk type for extension stub %s", sdkType)
+				return fmt.Errorf("unknown sdk type for extension stub %s", ext.SDK)
 			}
 		}
 
 		if generateWorkflow {
-			switch sdkType {
+			switch ext.SDK {
 			case "go":
 				if err := generateGoWorkflowStub(); err != nil {
 					return err
 				}
 			case "":
 			default:
-				return fmt.Errorf("unknown sdk type for workflow stub %s", sdkType)
+				return fmt.Errorf("unknown sdk type for workflow stub %s", ext.SDK)
 			}
 		}
 
@@ -85,14 +85,14 @@ func Generate(cmd *cobra.Command, args []string) {
 					return err
 				}
 
-				switch sdkType {
+				switch ext.SDK {
 				case "go":
 					if err := generateGoClientStubs(subdir); err != nil {
 						return err
 					}
 				case "":
 				default:
-					fmt.Fprintf(os.Stderr, "Error: unknown sdk type %s\n", sdkType)
+					fmt.Fprintf(os.Stderr, "Error: unknown sdk type %s\n", ext.SDK)
 					os.Exit(1)
 				}
 			}

@@ -1,6 +1,6 @@
 name: yarn
+sdk: ts
 sources:
   - path: .
-    sdk: ts
 dependencies:
   - local: ../alpine/cloak.yaml

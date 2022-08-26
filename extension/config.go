@@ -4,13 +4,13 @@ import "gopkg.in/yaml.v2"
 
 type Config struct {
 	Name         string        `yaml:"name"`
+	SDK          string        `yaml:"sdk"`
 	Dependencies []*Dependency `yaml:"dependencies,omitempty"`
 	Sources      []*Source     `yaml:"sources,omitempty"`
 }
 
 type Source struct {
 	Path string `yaml:"path"`
-	SDK  string `yaml:"sdk"`
 }
 
 type Dependency struct {

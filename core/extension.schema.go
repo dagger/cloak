@@ -16,6 +16,7 @@ type Extension struct {
 	Schema       string
 	Operations   string
 	Dependencies []*Extension
+	SDK          string                  `json:"sdk"`
 	schema       *extension.RemoteSchema // internal-only, for convenience in `install` resolver
 }
 
@@ -48,6 +49,9 @@ func (s *extensionSchema) Schema() string {
 
 		"dependencies for this extension"
 		dependencies: [Extension!]
+
+		"sdk for this extension"
+		sdk: String!
 
 		"install the extension, stitching its schema into the API"
 		install: Boolean!
@@ -134,6 +138,7 @@ func routerSchemaToExtension(schema router.ExecutableSchema) *Extension {
 		Name:       schema.Name(),
 		Schema:     schema.Schema(),
 		Operations: schema.Operations(),
+		//FIXME:(sipsma) SDK is not exposed on router.ExecutableSchema yet
 	}
 	for _, dep := range schema.Dependencies() {
 		ext.Dependencies = append(ext.Dependencies, routerSchemaToExtension(dep))
@@ -147,6 +152,7 @@ func remoteSchemaToExtension(schema *extension.RemoteSchema) *Extension {
 		Name:       schema.Name(),
 		Schema:     schema.Schema(),
 		Operations: schema.Operations(),
+		SDK:        schema.SDK(),
 		schema:     schema,
 	}
 	for _, dep := range schema.Dependencies() {

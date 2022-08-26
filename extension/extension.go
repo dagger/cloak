@@ -51,6 +51,7 @@ type RemoteSchema struct {
 	router.LoadedSchema
 	dependencies []*RemoteSchema
 	sources      []*Source
+	sdk          string
 }
 
 func Load(ctx context.Context, gw bkgw.Client, platform specs.Platform, contextFS *filesystem.Filesystem, configPath string, sshAuthSockID string) (*RemoteSchema, error) {
@@ -70,6 +71,7 @@ func Load(ctx context.Context, gw bkgw.Client, platform specs.Platform, contextF
 		configPath:    configPath,
 		sshAuthSockID: sshAuthSockID,
 		sources:       cfg.Sources,
+		sdk:           cfg.SDK,
 	}
 
 	sourceSchemas := make([]router.LoadedSchema, len(cfg.Sources))
@@ -135,6 +137,10 @@ func (s *RemoteSchema) Dependencies() []*RemoteSchema {
 	return s.dependencies
 }
 
+func (s *RemoteSchema) SDK() string {
+	return s.sdk
+}
+
 func (s RemoteSchema) Compile(ctx context.Context, cache map[string]*CompiledRemoteSchema, l *sync.RWMutex, sf *singleflight.Group) (*CompiledRemoteSchema, error) {
 	res, err, _ := sf.Do(s.Name(), func() (interface{}, error) {
 		// if we have already compiled a schema with this name, return it
@@ -154,7 +160,7 @@ func (s RemoteSchema) Compile(ctx context.Context, cache map[string]*CompiledRem
 		for _, src := range s.sources {
 			var runtimeFS *filesystem.Filesystem
 			var err error
-			switch src.SDK {
+			switch s.sdk {
 			case "go":
 				runtimeFS, err = goRuntime(ctx, s.contextFS, s.configPath, src.Path, s.platform, s.gw)
 			case "ts":
@@ -162,7 +168,7 @@ func (s RemoteSchema) Compile(ctx context.Context, cache map[string]*CompiledRem
 			case "dockerfile":
 				runtimeFS, err = dockerfileRuntime(ctx, s.contextFS, s.configPath, src.Path, s.platform, s.gw)
 			default:
-				return nil, fmt.Errorf("unknown sdk %q", src.SDK)
+				return nil, fmt.Errorf("unknown sdk %q", s.sdk)
 			}
 			if err != nil {
 				return nil, err
