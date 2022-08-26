@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go/types"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/99designs/gqlgen/api"
@@ -22,7 +23,83 @@ var mainTmpl string
 //go:embed templates/go.generated.gotpl
 var generatedTmpl string
 
-func generateGoImplStub(ext, coreExt *core.Extension) error {
+func generateGoWorkflowStub() error {
+	if err := os.WriteFile(filepath.Join(generateOutputDir, "main.go"), []byte(workflowMain), 0644); err != nil {
+		return err
+	}
+
+	cmd := exec.Command("go", "mod", "edit", "-replace=github.com/docker/docker=github.com/docker/docker@v20.10.3-0.20220414164044-61404de7df1a+incompatible")
+	cmd.Dir = generateOutputDir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "GO111MODULE=on")
+	cmd.Env = append(cmd.Env, "GOPRIVATE=github.com/sipsma/cloak,github.com/dagger/cloak")
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+
+	// FIXME:(sipsma) don't hardcode this
+	cmd = exec.Command("go", "mod", "edit", "-replace=github.com/dagger/cloak=github.com/sipsma/cloak@workflow-clean")
+	cmd.Dir = generateOutputDir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "GO111MODULE=on")
+	cmd.Env = append(cmd.Env, "GOPRIVATE=github.com/sipsma/cloak,github.com/dagger/cloak")
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+
+	// this tidy has to run first to resolve "workflow-clean" (otherwise next commands whine)
+	cmd = exec.Command("go", "mod", "tidy")
+	cmd.Dir = generateOutputDir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "GO111MODULE=on")
+	cmd.Env = append(cmd.Env, "GOPRIVATE=github.com/sipsma/cloak,github.com/dagger/cloak")
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+
+	cmd = exec.Command("go", "get", "github.com/dagger/cloak")
+	cmd.Dir = generateOutputDir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "GO111MODULE=on")
+	cmd.Env = append(cmd.Env, "GOPRIVATE=github.com/sipsma/cloak,github.com/dagger/cloak")
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+
+	cmd = exec.Command("go", "mod", "tidy")
+	cmd.Dir = generateOutputDir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "GO111MODULE=on")
+	cmd.Env = append(cmd.Env, "GOPRIVATE=github.com/sipsma/cloak,github.com/dagger/cloak")
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+
+	cmd = exec.Command("go", "mod", "vendor")
+	cmd.Dir = generateOutputDir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "GO111MODULE=on")
+	cmd.Env = append(cmd.Env, "GOPRIVATE=github.com/sipsma/cloak,github.com/dagger/cloak")
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func generateGoExtensionStub(ext, coreExt *core.Extension) error {
 	cfg := gqlconfig.DefaultConfig()
 	cfg.SkipModTidy = true
 	cfg.Exec = gqlconfig.ExecConfig{Filename: filepath.Join(generateOutputDir, "_deleteme.go"), Package: "main"}
@@ -257,3 +334,22 @@ func (r *Resolver) MethodSignature() string {
 	res += fmt.Sprintf(") (%s, error)", result)
 	return res
 }
+
+// FIXME:(sipsma)
+const workflowMain = `package main
+
+import (
+  "context"
+  coretypes "github.com/dagger/cloak/core"
+  "github.com/dagger/cloak/engine"
+  "github.com/dagger/cloak/sdk/go/dagger"
+)
+
+func main() {
+  if err := engine.Start(context.Background(), &engine.Config{}, func(ctx context.Context, _ *coretypes.Extension, _ map[string]dagger.FSID) error {
+    panic("implement me")
+  }); err != nil {
+    panic(err)
+  }
+}
+`

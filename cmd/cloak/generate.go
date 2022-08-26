@@ -37,15 +37,27 @@ func Generate(cmd *cobra.Command, args []string) {
 			return err
 		}
 
-		if generateImpl {
+		if generateExtension {
 			switch sdkType {
 			case "go":
-				if err := generateGoImplStub(ext, coreExt); err != nil {
+				if err := generateGoExtensionStub(ext, coreExt); err != nil {
 					return err
 				}
 			case "":
 			default:
-				return fmt.Errorf("unknown sdk type %s", sdkType)
+				return fmt.Errorf("unknown sdk type for extension stub %s", sdkType)
+			}
+		}
+
+		if generateWorkflow {
+			switch sdkType {
+			case "go":
+				if err := generateGoWorkflowStub(); err != nil {
+					return err
+				}
+			case "":
+			default:
+				return fmt.Errorf("unknown sdk type for workflow stub %s", sdkType)
 			}
 		}
 
