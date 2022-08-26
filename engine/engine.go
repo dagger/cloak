@@ -289,10 +289,14 @@ func loadProject(ctx context.Context, cl graphql.Client, contextFS dagger.FSID, 
 							name
 							schema
 							operations
-							sources {
+							extensions {
 								path
 								schema
 								operations
+								sdk
+							}
+							workflows {
+								path
 								sdk
 							}
 							dependencies {

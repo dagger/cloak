@@ -14,7 +14,6 @@ import (
 	"github.com/99designs/gqlgen/codegen/templates"
 	"github.com/Khan/genqlient/generate"
 	"github.com/dagger/cloak/core"
-	"github.com/dagger/cloak/extension"
 	"github.com/vektah/gqlparser/v2/ast"
 )
 
@@ -89,7 +88,7 @@ func generateGoWorkflowStub() error {
 	return nil
 }
 
-func generateGoExtensionStub(ext *extension.Source, coreProj *core.Project) error {
+func generateGoExtensionStub(schema string, coreProj *core.Project) error {
 	cmd := exec.Command("go", "get", "github.com/99designs/gqlgen")
 	cmd.Dir = generateOutputDir
 	cmd.Stdout = os.Stdout
@@ -116,7 +115,7 @@ func generateGoExtensionStub(ext *extension.Source, coreProj *core.Project) erro
 	cfg.SkipModTidy = false
 	cfg.Exec = gqlconfig.ExecConfig{Filename: filepath.Join(generateOutputDir, "_deleteme.go"), Package: "main"}
 	cfg.SchemaFilename = nil
-	cfg.Sources = []*ast.Source{{Input: ext.Schema}}
+	cfg.Sources = []*ast.Source{{Input: schema}}
 	cfg.Model = gqlconfig.PackageConfig{
 		Filename: filepath.Join(generateOutputDir, "models.go"),
 		Package:  "main",

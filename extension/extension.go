@@ -50,8 +50,8 @@ type RemoteSchema struct {
 
 	router.LoadedSchema
 	dependencies []*RemoteSchema
-	sources      []*Source
-	extensions   []*Source
+	workflows    []*Workflow
+	extensions   []*Extension
 }
 
 func Load(ctx context.Context, gw bkgw.Client, platform specs.Platform, contextFS *filesystem.Filesystem, configPath string, sshAuthSockID string) (*RemoteSchema, error) {
@@ -70,40 +70,35 @@ func Load(ctx context.Context, gw bkgw.Client, platform specs.Platform, contextF
 		contextFS:     contextFS,
 		configPath:    configPath,
 		sshAuthSockID: sshAuthSockID,
-		sources:       cfg.Sources,
+		workflows:     cfg.Workflows,
+		extensions:    cfg.Extensions,
 	}
 
 	var sourceSchemas []router.LoadedSchema
-	for _, src := range cfg.Sources {
+	for _, ext := range cfg.Extensions {
 		sdl, err := contextFS.ReadFile(ctx, gw, filepath.Join(
 			filepath.Dir(configPath),
-			src.Path,
+			ext.Path,
 			schemaPath,
 		))
-		if isGatewayFileNotFound(err) {
-			// For now, assume that a missing schema file means this is a workflow.
-			// NOTE: This assumption will no longer hold when we support code-first schemas.
-			continue
-		}
-		if err != nil {
+		if err != nil && !isGatewayFileNotFound(err) {
 			return nil, err
 		}
-		src.Schema = string(sdl)
-		s.extensions = append(s.extensions, src)
+		ext.Schema = string(sdl)
 
 		operations, err := contextFS.ReadFile(ctx, gw, filepath.Join(
 			filepath.Dir(configPath),
-			src.Path,
+			ext.Path,
 			operationsPath,
 		))
 		if err != nil && !isGatewayFileNotFound(err) {
 			return nil, err
 		}
-		src.Operations = string(operations)
+		ext.Operations = string(operations)
 
 		sourceSchemas = append(sourceSchemas, router.StaticSchema(router.StaticSchemaParams{
-			Schema:     src.Schema,
-			Operations: src.Operations,
+			Schema:     ext.Schema,
+			Operations: ext.Operations,
 		}))
 	}
 	s.LoadedSchema = router.MergeLoadedSchemas(cfg.Name, sourceSchemas...)
@@ -144,8 +139,12 @@ func (s *RemoteSchema) Dependencies() []*RemoteSchema {
 	return s.dependencies
 }
 
-func (s *RemoteSchema) Sources() []*Source {
-	return s.sources
+func (s *RemoteSchema) Workflows() []*Workflow {
+	return s.workflows
+}
+
+func (s *RemoteSchema) Extensions() []*Extension {
+	return s.extensions
 }
 
 func (s RemoteSchema) Compile(ctx context.Context, cache map[string]*CompiledRemoteSchema, l *sync.RWMutex, sf *singleflight.Group) (*CompiledRemoteSchema, error) {

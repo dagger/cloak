@@ -10,7 +10,6 @@ import (
 	"github.com/Khan/genqlient/graphql"
 	"github.com/dagger/cloak/core"
 	"github.com/dagger/cloak/engine"
-	"github.com/dagger/cloak/extension"
 	"github.com/dagger/cloak/sdk/go/dagger"
 	"github.com/spf13/cobra"
 )
@@ -34,15 +33,24 @@ func Generate(cmd *cobra.Command, args []string) {
 	}
 
 	if err := engine.Start(context.Background(), startOpts, func(ctx context.Context, proj *core.Project, localDirs map[string]dagger.FSID) error {
-		var source *extension.Source
-		for _, s := range proj.Sources {
+		var sdk string
+		var schema string
+		for _, s := range proj.Extensions {
 			if s.Path == sourceDir {
-				source = s
+				sdk = s.SDK
+				schema = s.Schema
 				break
 			}
 		}
-		if source == nil {
-			return fmt.Errorf("no source found at %s", sourceDir)
+		// FIXME:(sipsma) setting an extension and/or workflow to same dir has undefined behavior atm
+		for _, s := range proj.Workflows {
+			if s.Path == sourceDir {
+				sdk = s.SDK
+				break
+			}
+		}
+		if sdk == "" {
+			return fmt.Errorf("no workflow or extension found at %s", sourceDir)
 		}
 
 		cl, err := dagger.Client(ctx)
@@ -56,26 +64,26 @@ func Generate(cmd *cobra.Command, args []string) {
 		}
 
 		if generateExtension {
-			switch source.SDK {
+			switch sdk {
 			case "go":
-				if err := generateGoExtensionStub(source, coreProj); err != nil {
+				if err := generateGoExtensionStub(schema, coreProj); err != nil {
 					return err
 				}
 			case "":
 			default:
-				return fmt.Errorf("unknown sdk type for extension stub %s", source.SDK)
+				return fmt.Errorf("unknown sdk type for extension stub %s", sdk)
 			}
 		}
 
 		if generateWorkflow {
-			switch source.SDK {
+			switch sdk {
 			case "go":
 				if err := generateGoWorkflowStub(); err != nil {
 					return err
 				}
 			case "":
 			default:
-				return fmt.Errorf("unknown sdk type for workflow stub %s", source.SDK)
+				return fmt.Errorf("unknown sdk type for workflow stub %s", sdk)
 			}
 		}
 
@@ -103,14 +111,14 @@ func Generate(cmd *cobra.Command, args []string) {
 					return err
 				}
 
-				switch source.SDK {
+				switch sdk {
 				case "go":
 					if err := generateGoClientStubs(subdir); err != nil {
 						return err
 					}
 				case "":
 				default:
-					fmt.Fprintf(os.Stderr, "Error: unknown sdk type %s\n", source.SDK)
+					fmt.Fprintf(os.Stderr, "Error: unknown sdk type %s\n", sdk)
 					os.Exit(1)
 				}
 			}

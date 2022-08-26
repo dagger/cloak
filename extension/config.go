@@ -9,15 +9,21 @@ import (
 type Config struct {
 	Name         string        `yaml:"name"`
 	Dependencies []*Dependency `yaml:"dependencies,omitempty"`
-	Sources      []*Source     `yaml:"sources,omitempty"`
+	Extensions   []*Extension  `yaml:"extensions,omitempty"`
+	Workflows    []*Workflow   `yaml:"workflows,omitempty"`
 }
 
-type Source struct {
+type Extension struct {
 	Path string `yaml:"path"`
 	SDK  string `yaml:"sdk" json:"sdk"`
 	// FIXME:(sipsma) convenient for internal use, should not be settable in yaml (yet?)
 	Schema     string `yaml:"-"`
 	Operations string `yaml:"-"`
+}
+
+type Workflow struct {
+	Path string `yaml:"path"`
+	SDK  string `yaml:"sdk" json:"sdk"`
 }
 
 type Dependency struct {

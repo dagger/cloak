@@ -18,7 +18,8 @@ type Project struct {
 	Name         string
 	Schema       string
 	Operations   string
-	Sources      []*extension.Source
+	Workflows    []*extension.Workflow
+	Extensions   []*extension.Extension
 	Dependencies []*Project
 	schema       *extension.RemoteSchema // internal-only, for convenience in `install` resolver
 }
@@ -50,8 +51,11 @@ func (s *extensionSchema) Schema() string {
 		"merged operations of the project's sources (if any)"
 		operations: String
 
-		"sources for this project"
-		sources: [ProjectSource!]
+		"extensions for this project"
+		extensions: [Extension!]
+
+		"workflows for this project"
+		workflows: [Workflow!]
 
 		"dependencies for this project"
 		dependencies: [Project!]
@@ -60,15 +64,30 @@ func (s *extensionSchema) Schema() string {
 		install: Boolean!
 	}
 
-	"Project source representation"
-	type ProjectSource {
-		"path to the source in the project filesystem"
+	"Extension representation"
+	type Extension {
+		"path to the extension source in the project filesystem"
 		path: String!
 
-		"schema associated with the source (if any)"
+		"schema associated with the extension"
 		schema: String
 
-		"operations associated with the source (if any)"
+		"operations associated with the extension"
+		operations: String
+
+		"sdk of the source"
+		sdk: String!
+	}
+
+	"Workflow representation"
+	type Workflow {
+		"path to the workflow source in the project filesystem"
+		path: String!
+
+		"schema associated with the workflow"
+		schema: String
+
+		"operations associated with the workflow"
 		operations: String
 
 		"sdk of the source"
@@ -162,7 +181,7 @@ func routerSchemaToProject(schema router.ExecutableSchema) *Project {
 		Name:       schema.Name(),
 		Schema:     schema.Schema(),
 		Operations: schema.Operations(),
-		//FIXME:(sipsma) SDK is not exposed on router.ExecutableSchema yet
+		//FIXME:(sipsma) Workflows, Extensions are not exposed on router.ExecutableSchema yet
 	}
 	for _, dep := range schema.Dependencies() {
 		ext.Dependencies = append(ext.Dependencies, routerSchemaToProject(dep))
@@ -176,7 +195,8 @@ func remoteSchemaToProject(schema *extension.RemoteSchema) *Project {
 		Name:       schema.Name(),
 		Schema:     schema.Schema(),
 		Operations: schema.Operations(),
-		Sources:    schema.Sources(),
+		Workflows:  schema.Workflows(),
+		Extensions: schema.Extensions(),
 		schema:     schema,
 	}
 	for _, dep := range schema.Dependencies() {
