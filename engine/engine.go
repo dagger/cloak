@@ -43,7 +43,7 @@ type Config struct {
 }
 
 // FIXME:(sipsma) make struct for all metadata to pass back (client, operations, schema, localdirs, etc.)
-type StartCallback func(ctx context.Context, ext *core.Extension, localDirs map[string]dagger.FSID) error
+type StartCallback func(ctx context.Context, proj *core.Project, localDirs map[string]dagger.FSID) error
 
 func Start(ctx context.Context, startOpts *Config, fn StartCallback) error {
 	if startOpts == nil {
@@ -148,8 +148,7 @@ func Start(ctx context.Context, startOpts *Config, fn StartCallback) error {
 				return nil, err
 			}
 
-			// FIXME:(sipsma) the naming is very confusing; to be resolved when decision on projects is made
-			ext, err := loadExtension(ctx, cl, localDirMapping[WorkdirID], startOpts.ConfigPath, !startOpts.SkipInstall)
+			ext, err := loadProject(ctx, cl, localDirMapping[WorkdirID], startOpts.ConfigPath, !startOpts.SkipInstall)
 			if err != nil {
 				return nil, err
 			}
@@ -264,11 +263,11 @@ func loadLocalDirs(ctx context.Context, cl graphql.Client, localDirs map[string]
 	return mapping, eg.Wait()
 }
 
-func loadExtension(ctx context.Context, cl graphql.Client, contextFS dagger.FSID, configPath string, doInstall bool) (*core.Extension, error) {
+func loadProject(ctx context.Context, cl graphql.Client, contextFS dagger.FSID, configPath string, doInstall bool) (*core.Project, error) {
 	res := struct {
 		Core struct {
 			Filesystem struct {
-				LoadExtension core.Extension
+				LoadProject core.Project
 			}
 		}
 	}{}
@@ -283,14 +282,19 @@ func loadExtension(ctx context.Context, cl graphql.Client, contextFS dagger.FSID
 		&graphql.Request{
 			// FIXME:(sipsma) toggling install is extremely weird here, need better way
 			Query: fmt.Sprintf(`
-			query LoadExtension($fs: FSID!, $configPath: String!) {
+			query LoadProject($fs: FSID!, $configPath: String!) {
 				core {
 					filesystem(id: $fs) {
-						loadExtension(configPath: $configPath) {
+						loadProject(configPath: $configPath) {
 							name
 							schema
 							operations
-							sdk
+							sources {
+								path
+								schema
+								operations
+								sdk
+							}
 							dependencies {
 								name
 								schema
@@ -312,5 +316,5 @@ func loadExtension(ctx context.Context, cl graphql.Client, contextFS dagger.FSID
 		return nil, err
 	}
 
-	return &res.Core.Filesystem.LoadExtension, nil
+	return &res.Core.Filesystem.LoadProject, nil
 }

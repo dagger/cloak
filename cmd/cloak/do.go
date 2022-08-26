@@ -61,7 +61,7 @@ func Do(cmd *cobra.Command, args []string) {
 	}
 
 	var result []byte
-	err := engine.Start(ctx, startOpts, func(ctx context.Context, ext *core.Extension, localDirMapping map[string]dagger.FSID) error {
+	err := engine.Start(ctx, startOpts, func(ctx context.Context, proj *core.Project, localDirMapping map[string]dagger.FSID) error {
 		cl, err := dagger.Client(ctx)
 		if err != nil {
 			return err
@@ -80,7 +80,7 @@ func Do(cmd *cobra.Command, args []string) {
 		}
 
 		if operations == "" {
-			operations = ext.Operations
+			operations = proj.Operations
 		}
 
 		res := make(map[string]interface{})

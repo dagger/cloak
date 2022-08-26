@@ -14,6 +14,7 @@ import (
 	"github.com/99designs/gqlgen/codegen/templates"
 	"github.com/Khan/genqlient/generate"
 	"github.com/dagger/cloak/core"
+	"github.com/dagger/cloak/extension"
 	"github.com/vektah/gqlparser/v2/ast"
 )
 
@@ -99,7 +100,7 @@ func generateGoWorkflowStub() error {
 	return nil
 }
 
-func generateGoExtensionStub(ext, coreExt *core.Extension) error {
+func generateGoExtensionStub(ext *extension.Source, coreProj *core.Project) error {
 	cfg := gqlconfig.DefaultConfig()
 	cfg.SkipModTidy = true
 	cfg.Exec = gqlconfig.ExecConfig{Filename: filepath.Join(generateOutputDir, "_deleteme.go"), Package: "main"}
@@ -143,7 +144,7 @@ func generateGoExtensionStub(ext, coreExt *core.Extension) error {
 	if err := api.Generate(cfg, api.AddPlugin(plugin{
 		mainPath:      filepath.Join(generateOutputDir, "main.go"),
 		generatedPath: filepath.Join(generateOutputDir, "generated.go"),
-		coreSchema:    coreExt.Schema,
+		coreSchema:    coreProj.Schema,
 	})); err != nil {
 		return fmt.Errorf("error generating code: %w", err)
 	}
@@ -346,7 +347,7 @@ import (
 )
 
 func main() {
-  if err := engine.Start(context.Background(), &engine.Config{}, func(ctx context.Context, _ *coretypes.Extension, _ map[string]dagger.FSID) error {
+  if err := engine.Start(context.Background(), &engine.Config{}, func(ctx context.Context, _ *coretypes.Project, _ map[string]dagger.FSID) error {
     panic("implement me")
   }); err != nil {
     panic(err)

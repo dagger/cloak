@@ -25,7 +25,7 @@ func Dev(cmd *cobra.Command, args []string) {
 		ConfigPath: configPath,
 	}
 
-	err := engine.Start(context.Background(), startOpts, func(ctx context.Context, _ *core.Extension, _ map[string]dagger.FSID) error {
+	err := engine.Start(context.Background(), startOpts, func(ctx context.Context, _ *core.Project, _ map[string]dagger.FSID) error {
 		return nil
 	})
 	if err != nil {

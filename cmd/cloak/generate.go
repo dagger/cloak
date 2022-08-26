@@ -10,6 +10,7 @@ import (
 	"github.com/Khan/genqlient/graphql"
 	"github.com/dagger/cloak/core"
 	"github.com/dagger/cloak/engine"
+	"github.com/dagger/cloak/extension"
 	"github.com/dagger/cloak/sdk/go/dagger"
 	"github.com/spf13/cobra"
 )
@@ -20,49 +21,66 @@ var generateCmd = &cobra.Command{
 }
 
 func Generate(cmd *cobra.Command, args []string) {
+	sourceDir, err := filepath.Rel(workdir, generateOutputDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
 	startOpts := &engine.Config{
 		Workdir:     workdir,
 		ConfigPath:  configPath,
 		SkipInstall: true,
 	}
 
-	err := engine.Start(context.Background(), startOpts, func(ctx context.Context, ext *core.Extension, localDirs map[string]dagger.FSID) error {
+	if err := engine.Start(context.Background(), startOpts, func(ctx context.Context, proj *core.Project, localDirs map[string]dagger.FSID) error {
+		var source *extension.Source
+		for _, s := range proj.Sources {
+			if s.Path == sourceDir {
+				source = s
+				break
+			}
+		}
+		if source == nil {
+			return fmt.Errorf("no source found at %s", sourceDir)
+		}
+
 		cl, err := dagger.Client(ctx)
 		if err != nil {
 			return err
 		}
 
-		coreExt, err := loadCore(ctx, cl)
+		coreProj, err := loadCore(ctx, cl)
 		if err != nil {
 			return err
 		}
 
 		if generateExtension {
-			switch ext.SDK {
+			switch source.SDK {
 			case "go":
-				if err := generateGoExtensionStub(ext, coreExt); err != nil {
+				if err := generateGoExtensionStub(source, coreProj); err != nil {
 					return err
 				}
 			case "":
 			default:
-				return fmt.Errorf("unknown sdk type for extension stub %s", ext.SDK)
+				return fmt.Errorf("unknown sdk type for extension stub %s", source.SDK)
 			}
 		}
 
 		if generateWorkflow {
-			switch ext.SDK {
+			switch source.SDK {
 			case "go":
 				if err := generateGoWorkflowStub(); err != nil {
 					return err
 				}
 			case "":
 			default:
-				return fmt.Errorf("unknown sdk type for workflow stub %s", ext.SDK)
+				return fmt.Errorf("unknown sdk type for workflow stub %s", source.SDK)
 			}
 		}
 
 		if generateClients {
-			for _, dep := range append(ext.Dependencies, coreExt) {
+			for _, dep := range append(proj.Dependencies, coreProj) {
 				subdir := filepath.Join(generateOutputDir, "gen", dep.Name)
 				if err := os.MkdirAll(subdir, 0755); err != nil {
 					return err
@@ -75,7 +93,7 @@ func Generate(cmd *cobra.Command, args []string) {
 				// TODO:(sipsma) ugly hack to make each schema/operation work independently when referencing core types.
 				fullSchema := dep.Schema
 				if dep.Name != "core" {
-					fullSchema = coreExt.Schema + "\n\n" + fullSchema
+					fullSchema = coreProj.Schema + "\n\n" + fullSchema
 				}
 				if err := os.WriteFile(schemaPath, []byte(fullSchema), 0600); err != nil {
 					return err
@@ -85,31 +103,29 @@ func Generate(cmd *cobra.Command, args []string) {
 					return err
 				}
 
-				switch ext.SDK {
+				switch source.SDK {
 				case "go":
 					if err := generateGoClientStubs(subdir); err != nil {
 						return err
 					}
 				case "":
 				default:
-					fmt.Fprintf(os.Stderr, "Error: unknown sdk type %s\n", ext.SDK)
+					fmt.Fprintf(os.Stderr, "Error: unknown sdk type %s\n", source.SDK)
 					os.Exit(1)
 				}
 			}
 		}
 		return nil
-	},
-	)
-	if err != nil {
+	}); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func loadCore(ctx context.Context, cl graphql.Client) (*core.Extension, error) {
+func loadCore(ctx context.Context, cl graphql.Client) (*core.Project, error) {
 	data := struct {
 		Core struct {
-			Extension core.Extension
+			Project core.Project
 		}
 	}{}
 	resp := &graphql.Response{Data: &data}
@@ -119,7 +135,7 @@ func loadCore(ctx context.Context, cl graphql.Client) (*core.Extension, error) {
 			Query: `
 			query {
 				core {
-					extension(name: "core") {
+					project(name: "core") {
 						name
 						schema
 						operations
@@ -132,5 +148,5 @@ func loadCore(ctx context.Context, cl graphql.Client) (*core.Extension, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &data.Core.Extension, nil
+	return &data.Core.Project, nil
 }

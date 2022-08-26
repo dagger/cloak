@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"runtime/debug"
 	"sync"
 
 	"github.com/dagger/cloak/core/filesystem"
@@ -11,12 +12,14 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
-type Extension struct {
+// TODO:(sipsma) a lot of the naming of the go types/methods/files doesn't make any sense anymore, need to update w/ project terminology
+
+type Project struct {
 	Name         string
 	Schema       string
 	Operations   string
-	Dependencies []*Extension
-	SDK          string                  `json:"sdk"`
+	Sources      []*extension.Source
+	Dependencies []*Project
 	schema       *extension.RemoteSchema // internal-only, for convenience in `install` resolver
 }
 
@@ -36,35 +39,50 @@ func (s *extensionSchema) Name() string {
 
 func (s *extensionSchema) Schema() string {
 	return `
-	"Extension representation"
-	type Extension {
-		"name of the extension"
+	"Project representation"
+	type Project {
+		"name of the project"
 		name: String!
 
-		"schema of the extension"
+		"merged schema of the project's sources (if any)"
 		schema: String
 
-		"operations for this extension"
+		"merged operations of the project's sources (if any)"
 		operations: String
 
-		"dependencies for this extension"
-		dependencies: [Extension!]
+		"sources for this project"
+		sources: [ProjectSource!]
 
-		"sdk for this extension"
-		sdk: String!
+		"dependencies for this project"
+		dependencies: [Project!]
 
-		"install the extension, stitching its schema into the API"
+		"install the project, stitching its schema into the API"
 		install: Boolean!
 	}
 
+	"Project source representation"
+	type ProjectSource {
+		"path to the source in the project filesystem"
+		path: String!
+
+		"schema associated with the source (if any)"
+		schema: String
+
+		"operations associated with the source (if any)"
+		operations: String
+
+		"sdk of the source"
+		sdk: String!
+	}
+
 	extend type Filesystem {
-		"load an extension's metadata"
-		loadExtension(configPath: String!): Extension!
+		"load a project's metadata"
+		loadProject(configPath: String!): Project!
 	}
 
 	extend type Core {
-		"Look up an extension by name"
-		extension(name: String!): Extension!
+		"Look up a project by name"
+		project(name: String!): Project!
 	}
 	`
 }
@@ -76,12 +94,12 @@ func (s *extensionSchema) Operations() string {
 func (s *extensionSchema) Resolvers() router.Resolvers {
 	return router.Resolvers{
 		"Filesystem": router.ObjectResolver{
-			"loadExtension": s.loadExtension,
+			"loadProject": s.loadProject,
 		},
 		"Core": router.ObjectResolver{
-			"extension": s.extension,
+			"project": s.project,
 		},
-		"Extension": router.ObjectResolver{
+		"Project": router.ObjectResolver{
 			"install": s.install,
 		},
 	}
@@ -92,7 +110,7 @@ func (s *extensionSchema) Dependencies() []router.ExecutableSchema {
 }
 
 func (s *extensionSchema) install(p graphql.ResolveParams) (any, error) {
-	obj := p.Source.(*Extension)
+	obj := p.Source.(*Project)
 
 	executableSchema, err := obj.schema.Compile(p.Context, s.compiledSchemas, &s.l, &s.sf)
 	if err != nil {
@@ -106,7 +124,13 @@ func (s *extensionSchema) install(p graphql.ResolveParams) (any, error) {
 	return true, nil
 }
 
-func (s *extensionSchema) loadExtension(p graphql.ResolveParams) (any, error) {
+func (s *extensionSchema) loadProject(p graphql.ResolveParams) (any, error) {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Printf(string(debug.Stack()), err)
+			panic(err)
+		}
+	}()
 	obj, err := filesystem.FromSource(p.Source)
 	if err != nil {
 		return nil, err
@@ -118,45 +142,45 @@ func (s *extensionSchema) loadExtension(p graphql.ResolveParams) (any, error) {
 		return nil, err
 	}
 
-	return remoteSchemaToExtension(schema), nil
+	return remoteSchemaToProject(schema), nil
 }
 
-func (s *extensionSchema) extension(p graphql.ResolveParams) (any, error) {
+func (s *extensionSchema) project(p graphql.ResolveParams) (any, error) {
 	name := p.Args["name"].(string)
 
 	schema := s.router.Get(name)
 	if schema == nil {
-		return nil, fmt.Errorf("extension %q not found", name)
+		return nil, fmt.Errorf("project %q not found", name)
 	}
 
-	return routerSchemaToExtension(schema), nil
+	return routerSchemaToProject(schema), nil
 }
 
 // TODO:(sipsma) guard against infinite recursion
-func routerSchemaToExtension(schema router.ExecutableSchema) *Extension {
-	ext := &Extension{
+func routerSchemaToProject(schema router.ExecutableSchema) *Project {
+	ext := &Project{
 		Name:       schema.Name(),
 		Schema:     schema.Schema(),
 		Operations: schema.Operations(),
 		//FIXME:(sipsma) SDK is not exposed on router.ExecutableSchema yet
 	}
 	for _, dep := range schema.Dependencies() {
-		ext.Dependencies = append(ext.Dependencies, routerSchemaToExtension(dep))
+		ext.Dependencies = append(ext.Dependencies, routerSchemaToProject(dep))
 	}
 	return ext
 }
 
 // TODO:(sipsma) guard against infinite recursion
-func remoteSchemaToExtension(schema *extension.RemoteSchema) *Extension {
-	ext := &Extension{
+func remoteSchemaToProject(schema *extension.RemoteSchema) *Project {
+	ext := &Project{
 		Name:       schema.Name(),
 		Schema:     schema.Schema(),
 		Operations: schema.Operations(),
-		SDK:        schema.SDK(),
+		Sources:    schema.Sources(),
 		schema:     schema,
 	}
 	for _, dep := range schema.Dependencies() {
-		ext.Dependencies = append(ext.Dependencies, remoteSchemaToExtension(dep))
+		ext.Dependencies = append(ext.Dependencies, remoteSchemaToProject(dep))
 	}
 	return ext
 }

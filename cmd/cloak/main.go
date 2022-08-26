@@ -41,8 +41,7 @@ func init() {
 	doCmd.Flags().StringSliceVarP(&secretsInput, "secret", "e", []string{}, "secret to import")
 
 	generateCmd.Flags().StringVar(&generateOutputDir, "output-dir", "./", "output directory")
-	generateCmd.Flags().StringVar(&sdkType, "sdk", "", "sdk type to generate code for ('go', 'ts', etc.)")
-	generateCmd.Flags().BoolVar(&generateClients, "client", false, "generate client stub code")
+	generateCmd.Flags().BoolVar(&generateClients, "client", true, "generate client stub code")
 	generateCmd.Flags().BoolVar(&generateExtension, "extension", false, "generate implementation skeleton code for extension")
 	generateCmd.Flags().BoolVar(&generateWorkflow, "workflow", false, "generate implementation skeleton code for workflow")
 
