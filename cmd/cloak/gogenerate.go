@@ -86,7 +86,11 @@ func generateGoWorkflowStub() error {
 		return err
 	}
 
-	cmd = exec.Command("go", "mod", "vendor")
+	return nil
+}
+
+func generateGoExtensionStub(ext *extension.Source, coreProj *core.Project) error {
+	cmd := exec.Command("go", "get", "github.com/99designs/gqlgen")
 	cmd.Dir = generateOutputDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -97,12 +101,19 @@ func generateGoWorkflowStub() error {
 		return err
 	}
 
-	return nil
-}
+	cmd = exec.Command("go", "get", "github.com/Khan/genqlient")
+	cmd.Dir = generateOutputDir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "GO111MODULE=on")
+	cmd.Env = append(cmd.Env, "GOPRIVATE=github.com/sipsma/cloak,github.com/dagger/cloak")
+	if err := cmd.Run(); err != nil {
+		return err
+	}
 
-func generateGoExtensionStub(ext *extension.Source, coreProj *core.Project) error {
 	cfg := gqlconfig.DefaultConfig()
-	cfg.SkipModTidy = true
+	cfg.SkipModTidy = false
 	cfg.Exec = gqlconfig.ExecConfig{Filename: filepath.Join(generateOutputDir, "_deleteme.go"), Package: "main"}
 	cfg.SchemaFilename = nil
 	cfg.Sources = []*ast.Source{{Input: ext.Schema}}

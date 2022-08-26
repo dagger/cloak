@@ -169,7 +169,7 @@ func (s RemoteSchema) Compile(ctx context.Context, cache map[string]*CompiledRem
 			var err error
 			switch src.SDK {
 			case "go":
-				runtimeFS, err = goRuntime(ctx, s.contextFS, s.configPath, src.Path, s.platform, s.gw)
+				runtimeFS, err = goRuntime(ctx, s.contextFS, s.configPath, src.Path, s.platform, s.gw, s.sshAuthSockID)
 			case "ts":
 				runtimeFS, err = tsRuntime(ctx, s.contextFS, s.configPath, src.Path, s.platform, s.gw, s.sshAuthSockID)
 			case "dockerfile":

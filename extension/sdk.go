@@ -16,7 +16,7 @@ import (
 
 // TODO:(sipsma) SDKs should be pluggable extensions, not hardcoded LLB here. The implementation here is a temporary bridge from the previous hardcoded Dockerfiles to the sdk-as-extension model.
 
-func goRuntime(ctx context.Context, contextFS *filesystem.Filesystem, cfgPath, sourcePath string, p specs.Platform, gw bkgw.Client) (*filesystem.Filesystem, error) {
+func goRuntime(ctx context.Context, contextFS *filesystem.Filesystem, cfgPath, sourcePath string, p specs.Platform, gw bkgw.Client, sshAuthSockID string) (*filesystem.Filesystem, error) {
 	contextState, err := contextFS.ToState()
 	if err != nil {
 		return nil, err
@@ -25,6 +25,13 @@ func goRuntime(ctx context.Context, contextFS *filesystem.Filesystem, cfgPath, s
 	return filesystem.FromState(ctx,
 		llb.Image("golang:1.18.2-alpine", llb.WithMetaResolver(gw)).
 			Run(llb.Shlex(`apk add --no-cache file git openssh-client`)).Root().
+			// FIXME:(sipsma)
+			File(llb.Mkfile("/root/.gitconfig", 0644, []byte(`
+[url "ssh://git@github.com/dagger/cloak"]
+  insteadOf = https://github.com/dagger/cloak
+[url "ssh://git@github.com/sipsma/cloak"]
+  insteadOf = https://github.com/sipsma/cloak
+`))).
 			Run(llb.Shlex(
 				fmt.Sprintf(
 					`go build -o /entrypoint -ldflags '-s -d -w' %s`,
@@ -38,6 +45,18 @@ func goRuntime(ctx context.Context, contextFS *filesystem.Filesystem, cfgPath, s
 					"/root/.cache/gocache",
 					llb.Scratch(),
 					llb.AsPersistentCacheDir("gomodcache", llb.CacheMountShared),
+				),
+				// FIXME:(sipsma)
+				llb.AddEnv("GOPRIVATE", "github.com/dagger/cloak,github.com/sipsma/cloak"),
+				llb.AddSSHSocket(
+					llb.SSHID(sshAuthSockID),
+					llb.SSHSocketTarget("/ssh-agent.sock"),
+				),
+				llb.AddEnv("SSH_AUTH_SOCK", "/ssh-agent.sock"),
+				// FIXME:(sipsma) ssh verification against github fails without this. There are cleaner ways of accomplishing this than mounting over /root/.ssh though
+				llb.AddMount("/root/.ssh",
+					llb.Scratch().File(llb.Mkfile("known_hosts", 0600, []byte(`github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==`))),
+					llb.Readonly,
 				),
 			).Root(),
 		p,
