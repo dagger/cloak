@@ -29,8 +29,6 @@ func goRuntime(ctx context.Context, contextFS *filesystem.Filesystem, cfgPath, s
 			File(llb.Mkfile("/root/.gitconfig", 0644, []byte(`
 [url "ssh://git@github.com/dagger/cloak"]
   insteadOf = https://github.com/dagger/cloak
-[url "ssh://git@github.com/sipsma/cloak"]
-  insteadOf = https://github.com/sipsma/cloak
 `))).
 			Run(llb.Shlex(
 				fmt.Sprintf(
@@ -47,7 +45,7 @@ func goRuntime(ctx context.Context, contextFS *filesystem.Filesystem, cfgPath, s
 					llb.AsPersistentCacheDir("gomodcache", llb.CacheMountShared),
 				),
 				// FIXME:(sipsma)
-				llb.AddEnv("GOPRIVATE", "github.com/dagger/cloak,github.com/sipsma/cloak"),
+				llb.AddEnv("GOPRIVATE", "github.com/dagger/cloak"),
 				llb.AddSSHSocket(
 					llb.SSHID(sshAuthSockID),
 					llb.SSHSocketTarget("/ssh-agent.sock"),

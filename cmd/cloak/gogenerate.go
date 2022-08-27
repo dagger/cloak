@@ -36,13 +36,13 @@ func generateGoWorkflowStub(generateOutputDir string) error {
 	}
 
 	// run tidy to fix any pre-existing errors that will cause next commands to fail
-	cmd := exec.Command("go", "mod", "tidy")
+	cmd := exec.Command("go", "get", "github.com/dagger/cloak@demov2")
 	cmd.Dir = generateOutputDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "GO111MODULE=on")
-	cmd.Env = append(cmd.Env, "GOPRIVATE=github.com/sipsma/cloak,github.com/dagger/cloak")
+	cmd.Env = append(cmd.Env, "GOPRIVATE=github.com/dagger/cloak")
 	if err := cmd.Run(); err != nil {
 		return err
 	}
@@ -53,42 +53,7 @@ func generateGoWorkflowStub(generateOutputDir string) error {
 	cmd.Stderr = os.Stderr
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "GO111MODULE=on")
-	cmd.Env = append(cmd.Env, "GOPRIVATE=github.com/sipsma/cloak,github.com/dagger/cloak")
-	if err := cmd.Run(); err != nil {
-		return err
-	}
-
-	// FIXME:(sipsma) don't hardcode this
-	cmd = exec.Command("go", "mod", "edit", "-replace=github.com/dagger/cloak=github.com/sipsma/cloak@workflow-clean")
-	cmd.Dir = generateOutputDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "GO111MODULE=on")
-	cmd.Env = append(cmd.Env, "GOPRIVATE=github.com/sipsma/cloak,github.com/dagger/cloak")
-	if err := cmd.Run(); err != nil {
-		return err
-	}
-
-	// this tidy has to run first to resolve "workflow-clean" (otherwise next commands whine)
-	cmd = exec.Command("go", "mod", "tidy")
-	cmd.Dir = generateOutputDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "GO111MODULE=on")
-	cmd.Env = append(cmd.Env, "GOPRIVATE=github.com/sipsma/cloak,github.com/dagger/cloak")
-	if err := cmd.Run(); err != nil {
-		return err
-	}
-
-	cmd = exec.Command("go", "get", "github.com/dagger/cloak")
-	cmd.Dir = generateOutputDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "GO111MODULE=on")
-	cmd.Env = append(cmd.Env, "GOPRIVATE=github.com/sipsma/cloak,github.com/dagger/cloak")
+	cmd.Env = append(cmd.Env, "GOPRIVATE=github.com/dagger/cloak")
 	if err := cmd.Run(); err != nil {
 		return err
 	}
@@ -99,7 +64,7 @@ func generateGoWorkflowStub(generateOutputDir string) error {
 	cmd.Stderr = os.Stderr
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "GO111MODULE=on")
-	cmd.Env = append(cmd.Env, "GOPRIVATE=github.com/sipsma/cloak,github.com/dagger/cloak")
+	cmd.Env = append(cmd.Env, "GOPRIVATE=github.com/dagger/cloak")
 	if err := cmd.Run(); err != nil {
 		return err
 	}
@@ -114,7 +79,7 @@ func generateGoExtensionStub(generateOutputDir, schema string, coreProj *core.Pr
 	cmd.Stderr = os.Stderr
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "GO111MODULE=on")
-	cmd.Env = append(cmd.Env, "GOPRIVATE=github.com/sipsma/cloak,github.com/dagger/cloak")
+	cmd.Env = append(cmd.Env, "GOPRIVATE=github.com/dagger/cloak")
 	if err := cmd.Run(); err != nil {
 		return err
 	}
@@ -125,7 +90,7 @@ func generateGoExtensionStub(generateOutputDir, schema string, coreProj *core.Pr
 	cmd.Stderr = os.Stderr
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "GO111MODULE=on")
-	cmd.Env = append(cmd.Env, "GOPRIVATE=github.com/sipsma/cloak,github.com/dagger/cloak")
+	cmd.Env = append(cmd.Env, "GOPRIVATE=github.com/dagger/cloak")
 	if err := cmd.Run(); err != nil {
 		return err
 	}
