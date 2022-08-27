@@ -17,12 +17,6 @@ var (
 	localDirsInput []string
 	secretsInput   []string
 
-	generateOutputDir string
-	sdkType           string // TODO: enum?
-	generateClients   bool
-	generateExtension bool
-	generateWorkflow  bool
-
 	devServerPort int
 )
 
@@ -39,11 +33,6 @@ func init() {
 	doCmd.Flags().StringSliceVarP(&queryVarsInput, "set", "s", []string{}, "query variable")
 	doCmd.Flags().StringSliceVarP(&localDirsInput, "local-dir", "l", []string{}, "local directory to import")
 	doCmd.Flags().StringSliceVarP(&secretsInput, "secret", "e", []string{}, "secret to import")
-
-	generateCmd.Flags().StringVar(&generateOutputDir, "output-dir", "./", "output directory")
-	generateCmd.Flags().BoolVar(&generateClients, "client", true, "generate client stub code")
-	generateCmd.Flags().BoolVar(&generateExtension, "extension", false, "generate implementation skeleton code for extension")
-	generateCmd.Flags().BoolVar(&generateWorkflow, "workflow", false, "generate implementation skeleton code for workflow")
 
 	devCmd.Flags().IntVar(&devServerPort, "port", 8080, "dev server port")
 	devCmd.Flags().StringSliceVarP(&localDirsInput, "local-dir", "l", []string{}, "local directory to import")

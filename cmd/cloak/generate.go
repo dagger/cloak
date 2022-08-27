@@ -20,12 +20,6 @@ var generateCmd = &cobra.Command{
 }
 
 func Generate(cmd *cobra.Command, args []string) {
-	sourceDir, err := filepath.Rel(workdir, generateOutputDir)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
-
 	startOpts := &engine.Config{
 		Workdir:     workdir,
 		ConfigPath:  configPath,
@@ -33,26 +27,6 @@ func Generate(cmd *cobra.Command, args []string) {
 	}
 
 	if err := engine.Start(context.Background(), startOpts, func(ctx context.Context, proj *core.Project, localDirs map[string]dagger.FSID) error {
-		var sdk string
-		var schema string
-		for _, s := range proj.Extensions {
-			if s.Path == sourceDir {
-				sdk = s.SDK
-				schema = s.Schema
-				break
-			}
-		}
-		// FIXME:(sipsma) setting an extension and/or workflow to same dir has undefined behavior atm
-		for _, s := range proj.Workflows {
-			if s.Path == sourceDir {
-				sdk = s.SDK
-				break
-			}
-		}
-		if sdk == "" {
-			return fmt.Errorf("no workflow or extension found at %s", sourceDir)
-		}
-
 		cl, err := dagger.Client(ctx)
 		if err != nil {
 			return err
@@ -63,71 +37,81 @@ func Generate(cmd *cobra.Command, args []string) {
 			return err
 		}
 
-		if generateExtension {
-			switch sdk {
+		for _, s := range proj.Extensions {
+			generateOutputDir := filepath.Join(workdir, filepath.Dir(configPath), s.Path)
+
+			switch s.SDK {
 			case "go":
-				if err := generateGoExtensionStub(schema, coreProj); err != nil {
+				if err := generateGoExtensionStub(generateOutputDir, s.Schema, coreProj); err != nil {
 					return err
 				}
 			case "":
 			default:
-				return fmt.Errorf("unknown sdk type for extension stub %s", sdk)
+				//FIXME:(sipsma) fmt.Printf("unhandled sdk type for extension stub %s\n", s.SDK)
+			}
+			if err := generateClients(proj, coreProj, generateOutputDir, s.SDK); err != nil {
+				return err
 			}
 		}
 
-		if generateWorkflow {
-			switch sdk {
+		for _, s := range proj.Workflows {
+			generateOutputDir := filepath.Join(workdir, filepath.Dir(configPath), s.Path)
+			switch s.SDK {
 			case "go":
-				if err := generateGoWorkflowStub(); err != nil {
+				if err := generateGoWorkflowStub(generateOutputDir); err != nil {
 					return err
 				}
 			case "":
 			default:
-				return fmt.Errorf("unknown sdk type for workflow stub %s", sdk)
+				//FIXME:(sipsma) fmt.Printf("unhandled sdk type for workflow stub %s\n", s.SDK)
+			}
+			if err := generateClients(proj, coreProj, generateOutputDir, s.SDK); err != nil {
+				return err
 			}
 		}
 
-		if generateClients {
-			for _, dep := range append(proj.Dependencies, coreProj) {
-				subdir := filepath.Join(generateOutputDir, "gen", dep.Name)
-				if err := os.MkdirAll(subdir, 0755); err != nil {
-					return err
-				}
-				if err := os.WriteFile(filepath.Join(subdir, ".gitattributes"), []byte("** linguist-generated=true"), 0600); err != nil {
-					return err
-				}
-				schemaPath := filepath.Join(subdir, "schema.graphql")
-
-				// TODO:(sipsma) ugly hack to make each schema/operation work independently when referencing core types.
-				fullSchema := dep.Schema
-				if dep.Name != "core" {
-					fullSchema = coreProj.Schema + "\n\n" + fullSchema
-				}
-				if err := os.WriteFile(schemaPath, []byte(fullSchema), 0600); err != nil {
-					return err
-				}
-				operationsPath := filepath.Join(subdir, "operations.graphql")
-				if err := os.WriteFile(operationsPath, []byte(dep.Operations), 0600); err != nil {
-					return err
-				}
-
-				switch sdk {
-				case "go":
-					if err := generateGoClientStubs(subdir); err != nil {
-						return err
-					}
-				case "":
-				default:
-					fmt.Fprintf(os.Stderr, "Error: unknown sdk type %s\n", sdk)
-					os.Exit(1)
-				}
-			}
-		}
 		return nil
 	}); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+func generateClients(proj, coreProj *core.Project, generateOutputDir, sdk string) error {
+	for _, dep := range append(proj.Dependencies, coreProj) {
+		subdir := filepath.Join(generateOutputDir, "gen", dep.Name)
+		if err := os.MkdirAll(subdir, 0755); err != nil {
+			return err
+		}
+		if err := os.WriteFile(filepath.Join(subdir, ".gitattributes"), []byte("** linguist-generated=true"), 0600); err != nil {
+			return err
+		}
+		schemaPath := filepath.Join(subdir, "schema.graphql")
+
+		// TODO:(sipsma) ugly hack to make each schema/operation work independently when referencing core types.
+		fullSchema := dep.Schema
+		if dep.Name != "core" {
+			fullSchema = coreProj.Schema + "\n\n" + fullSchema
+		}
+		if err := os.WriteFile(schemaPath, []byte(fullSchema), 0600); err != nil {
+			return err
+		}
+		operationsPath := filepath.Join(subdir, "operations.graphql")
+		if err := os.WriteFile(operationsPath, []byte(dep.Operations), 0600); err != nil {
+			return err
+		}
+
+		switch sdk {
+		case "go":
+			if err := generateGoClientStubs(subdir); err != nil {
+				return err
+			}
+		case "":
+		default:
+			//FIXME:(sipsma) fmt.Printf("unhandled sdk type for client stub %s\n", sdk)
+		}
+	}
+	return nil
 }
 
 func loadCore(ctx context.Context, cl graphql.Client) (*core.Project, error) {

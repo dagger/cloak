@@ -23,12 +23,31 @@ var mainTmpl string
 //go:embed templates/go.generated.gotpl
 var generatedTmpl string
 
-func generateGoWorkflowStub() error {
-	if err := os.WriteFile(filepath.Join(generateOutputDir, "main.go"), []byte(workflowMain), 0644); err != nil {
+func generateGoWorkflowStub(generateOutputDir string) error {
+	mainFile := filepath.Join(generateOutputDir, "main.go")
+	if _, err := os.Stat(mainFile); os.IsNotExist(err) {
+		if err := os.WriteFile(filepath.Join(mainFile), []byte(workflowMain), 0644); err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	} else {
+		fmt.Printf("%s already exists, skipping generation\n", mainFile)
+	}
+
+	// run tidy to fix any pre-existing errors that will cause next commands to fail
+	cmd := exec.Command("go", "mod", "tidy")
+	cmd.Dir = generateOutputDir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "GO111MODULE=on")
+	cmd.Env = append(cmd.Env, "GOPRIVATE=github.com/sipsma/cloak,github.com/dagger/cloak")
+	if err := cmd.Run(); err != nil {
 		return err
 	}
 
-	cmd := exec.Command("go", "mod", "edit", "-replace=github.com/docker/docker=github.com/docker/docker@v20.10.3-0.20220414164044-61404de7df1a+incompatible")
+	cmd = exec.Command("go", "mod", "edit", "-replace=github.com/docker/docker=github.com/docker/docker@v20.10.3-0.20220414164044-61404de7df1a+incompatible")
 	cmd.Dir = generateOutputDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -88,7 +107,7 @@ func generateGoWorkflowStub() error {
 	return nil
 }
 
-func generateGoExtensionStub(schema string, coreProj *core.Project) error {
+func generateGoExtensionStub(generateOutputDir, schema string, coreProj *core.Project) error {
 	cmd := exec.Command("go", "get", "github.com/99designs/gqlgen")
 	cmd.Dir = generateOutputDir
 	cmd.Stdout = os.Stdout
@@ -151,8 +170,15 @@ func generateGoExtensionStub(schema string, coreProj *core.Project) error {
 		return fmt.Errorf("error completing config: %w", err)
 	}
 	defer os.Remove(cfg.Exec.Filename)
+
+	mainPath := filepath.Join(generateOutputDir, "main.go")
+	if _, err := os.Stat(mainPath); err == nil {
+		fmt.Printf("%s already exists, skipping generation\n", mainPath)
+		mainPath = ""
+	}
+
 	if err := api.Generate(cfg, api.AddPlugin(plugin{
-		mainPath:      filepath.Join(generateOutputDir, "main.go"),
+		mainPath:      mainPath,
 		generatedPath: filepath.Join(generateOutputDir, "generated.go"),
 		coreSchema:    coreProj.Schema,
 	})); err != nil {
@@ -249,14 +275,16 @@ func (p plugin) GenerateCode(data *codegen.Data) error {
 		typesByName: typesByName,
 	}
 
-	if err := templates.Render(templates.Options{
-		PackageName: "main",
-		Filename:    p.mainPath,
-		Data:        resolverBuild,
-		Packages:    data.Config.Packages,
-		Template:    mainTmpl,
-	}); err != nil {
-		return err
+	if p.mainPath != "" {
+		if err := templates.Render(templates.Options{
+			PackageName: "main",
+			Filename:    p.mainPath,
+			Data:        resolverBuild,
+			Packages:    data.Config.Packages,
+			Template:    mainTmpl,
+		}); err != nil {
+			return err
+		}
 	}
 
 	if err := templates.Render(templates.Options{
