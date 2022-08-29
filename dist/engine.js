@@ -44,7 +44,15 @@ export class Engine {
                 await new Promise((resolve) => setTimeout(resolve, 500));
             }
         }
-        await cb(new GraphQLClient(`http://localhost:${this.config.Port}`)).finally(async () => {
+        await cb(new GraphQLClient(`http://localhost:${this.config.Port}`))
+            .catch(async (err) => {
+            // FIXME:(sipsma) give the engine a sec to flush any progress logs on error
+            // Better solution is to send SIGTERM and have a handler in cloak engine that
+            // flushes logs before exiting.
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            throw err;
+        })
+            .finally(async () => {
             serverProc.cancel();
             return serverProc.catch((e) => {
                 if (!e.isCanceled) {
