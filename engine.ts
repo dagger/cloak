@@ -49,11 +49,11 @@ export class Engine {
     });
 
     // use axios-fetch to try connecting to the server until successful
-    // FIXME:(sipsma) hardcoding that the server has 60 seconds to import+install all extensions...
+    // FIXME:(sipsma) hardcoding that the server has 3 minutes to import+install all extensions...
     const client = axios.create({
       baseURL: `http://localhost:${this.config.Port}`,
     });
-    for (let i = 0; i < 120; i++) {
+    for (let i = 0; i < 360; i++) {
       try {
         await client.get("/");
       } catch (e) {
