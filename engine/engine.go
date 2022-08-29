@@ -42,8 +42,14 @@ type Config struct {
 	SkipInstall bool // FIXME:(sipsma) ugly, needed for generate at the moment, probably should split engine to this implementation and one in the go sdk where this difference can be handled more cleanly
 }
 
-// FIXME:(sipsma) make struct for all metadata to pass back (client, operations, schema, localdirs, etc.)
-type StartCallback func(ctx context.Context, proj *core.Project, localDirs map[string]dagger.FSID) error
+type Context struct {
+	context.Context
+	Project   *core.Project
+	LocalDirs map[string]dagger.FSID
+	Client    graphql.Client
+}
+
+type StartCallback func(Context) error
 
 func Start(ctx context.Context, startOpts *Config, fn StartCallback) error {
 	if startOpts == nil {
@@ -157,7 +163,12 @@ func Start(ctx context.Context, startOpts *Config, fn StartCallback) error {
 				return nil, nil
 			}
 
-			if err := fn(ctx, ext, localDirMapping); err != nil {
+			if err := fn(Context{
+				Context:   ctx,
+				Project:   ext,
+				LocalDirs: localDirMapping,
+				Client:    cl,
+			}); err != nil {
 				return nil, err
 			}
 

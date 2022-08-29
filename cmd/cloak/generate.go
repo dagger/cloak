@@ -26,7 +26,7 @@ func Generate(cmd *cobra.Command, args []string) {
 		SkipInstall: true,
 	}
 
-	if err := engine.Start(context.Background(), startOpts, func(ctx context.Context, proj *core.Project, localDirs map[string]dagger.FSID) error {
+	if err := engine.Start(context.Background(), startOpts, func(ctx engine.Context) error {
 		cl, err := dagger.Client(ctx)
 		if err != nil {
 			return err
@@ -37,7 +37,7 @@ func Generate(cmd *cobra.Command, args []string) {
 			return err
 		}
 
-		for _, s := range proj.Extensions {
+		for _, s := range ctx.Project.Extensions {
 			generateOutputDir := filepath.Join(workdir, filepath.Dir(configPath), s.Path)
 
 			switch s.SDK {
@@ -49,12 +49,12 @@ func Generate(cmd *cobra.Command, args []string) {
 			default:
 				//FIXME:(sipsma) fmt.Printf("unhandled sdk type for extension stub %s\n", s.SDK)
 			}
-			if err := generateClients(proj, coreProj, generateOutputDir, s.SDK); err != nil {
+			if err := generateClients(ctx.Project, coreProj, generateOutputDir, s.SDK); err != nil {
 				return err
 			}
 		}
 
-		for _, s := range proj.Workflows {
+		for _, s := range ctx.Project.Workflows {
 			generateOutputDir := filepath.Join(workdir, filepath.Dir(configPath), s.Path)
 			switch s.SDK {
 			case "go":
@@ -65,7 +65,7 @@ func Generate(cmd *cobra.Command, args []string) {
 			default:
 				//FIXME:(sipsma) fmt.Printf("unhandled sdk type for workflow stub %s\n", s.SDK)
 			}
-			if err := generateClients(proj, coreProj, generateOutputDir, s.SDK); err != nil {
+			if err := generateClients(ctx.Project, coreProj, generateOutputDir, s.SDK); err != nil {
 				return err
 			}
 		}

@@ -10,7 +10,6 @@ import (
 	"sync"
 
 	"github.com/Khan/genqlient/graphql"
-	"github.com/dagger/cloak/core"
 	"github.com/dagger/cloak/engine"
 	"github.com/dagger/cloak/sdk/go/dagger"
 	"github.com/spf13/cobra"
@@ -61,17 +60,12 @@ func Do(cmd *cobra.Command, args []string) {
 	}
 
 	var result []byte
-	err := engine.Start(ctx, startOpts, func(ctx context.Context, proj *core.Project, localDirMapping map[string]dagger.FSID) error {
-		cl, err := dagger.Client(ctx)
-		if err != nil {
-			return err
-		}
-
-		for name, id := range localDirMapping {
+	err := engine.Start(ctx, startOpts, func(ctx engine.Context) error {
+		for name, id := range ctx.LocalDirs {
 			vars[name] = string(id)
 		}
 
-		secretMapping, err := loadSecrets(ctx, cl, secrets)
+		secretMapping, err := loadSecrets(ctx, ctx.Client, secrets)
 		if err != nil {
 			return err
 		}
@@ -80,12 +74,12 @@ func Do(cmd *cobra.Command, args []string) {
 		}
 
 		if operations == "" {
-			operations = proj.Operations
+			operations = ctx.Project.Operations
 		}
 
 		res := make(map[string]interface{})
 		resp := &graphql.Response{Data: &res}
-		err = cl.MakeRequest(ctx,
+		err = ctx.Client.MakeRequest(ctx,
 			&graphql.Request{
 				Query:     operations,
 				Variables: vars,

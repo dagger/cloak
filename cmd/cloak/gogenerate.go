@@ -344,13 +344,11 @@ const workflowMain = `package main
 
 import (
   "context"
-  coretypes "github.com/dagger/cloak/core"
   "github.com/dagger/cloak/engine"
-  "github.com/dagger/cloak/sdk/go/dagger"
 )
 
 func main() {
-  if err := engine.Start(context.Background(), &engine.Config{}, func(ctx context.Context, _ *coretypes.Project, _ map[string]dagger.FSID) error {
+  if err := engine.Start(context.Background(), &engine.Config{}, func(ctx engine.Context) error {
     panic("implement me")
   }); err != nil {
     panic(err)
