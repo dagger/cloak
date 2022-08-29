@@ -3,7 +3,7 @@ export interface EngineOptions {
     LocalDirs?: Record<string, string>;
     Port?: number;
     Workdir?: string;
-    ConfigPath: string;
+    ConfigPath?: string;
 }
 export declare class Engine {
     private config;

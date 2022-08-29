@@ -1,6 +1,7 @@
 import axios from "axios";
 import { execa } from "execa";
 import { GraphQLClient } from "graphql-request";
+import path from "path";
 
 export interface EngineOptions {
   LocalDirs?: Record<string, string>;
@@ -31,8 +32,11 @@ export class Engine {
 
     // add local dirs from config in the form of `--local-dir <name>=<path>`
     if (this.config.LocalDirs) {
-      for (const [name, path] of Object.entries(this.config.LocalDirs)) {
-        args.push("--local-dir", `${name}=${path}`);
+      for (var [name, localDir] of Object.entries(this.config.LocalDirs)) {
+        if (!path.isAbsolute(localDir)) {
+          localDir = path.resolve(localDir);
+        }
+        args.push("--local-dir", `${name}=${localDir}`);
       }
     }
     // add port from config in the form of `--port <port>`, defaulting to 8080
@@ -57,15 +61,21 @@ export class Engine {
       }
     }
 
-    await cb(new GraphQLClient(`http://localhost:${this.config.Port}`)).finally(
-      async () => {
+    await cb(new GraphQLClient(`http://localhost:${this.config.Port}`))
+      .catch(async (err) => {
+        // FIXME:(sipsma) give the engine a sec to flush any progress logs on error
+        // Better solution is to send SIGTERM and have a handler in cloak engine that
+        // flushes logs before exiting.
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        throw err;
+      })
+      .finally(async () => {
         serverProc.cancel();
         return serverProc.catch((e) => {
           if (!e.isCanceled) {
             console.error("cloak engine error: ", e);
           }
         });
-      }
-    );
+      });
   }
 }
