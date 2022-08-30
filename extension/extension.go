@@ -81,7 +81,7 @@ func Load(ctx context.Context, gw bkgw.Client, platform specs.Platform, contextF
 			ext.Path,
 			schemaPath,
 		))
-		if err != nil && !isGatewayFileNotFound(err) {
+		if err != nil {
 			return nil, err
 		}
 		ext.Schema = string(sdl)
