@@ -67,8 +67,9 @@ func tsRuntime(ctx context.Context, contextFS *filesystem.Filesystem, cfgPath, s
 		return nil, err
 	}
 
+	ctrSrcPath := filepath.Join("/src", filepath.Dir(cfgPath), sourcePath)
+
 	baseRunOpts := withRunOpts(
-		llb.Dir(filepath.Join("/src", filepath.Dir(cfgPath), sourcePath)),
 		llb.AddEnv("YARN_CACHE_FOLDER", "/cache/yarn"),
 		llb.AddMount(
 			"/cache/yarn",
@@ -91,16 +92,15 @@ func tsRuntime(ctx context.Context, contextFS *filesystem.Filesystem, cfgPath, s
 		llb.Merge([]llb.State{
 			llb.Image("node:16-alpine", llb.WithMetaResolver(gw)).
 				Run(llb.Shlex(`apk add --no-cache file git openssh-client`)).Root(),
-			// TODO: sad that a copy is needed
 			llb.Scratch().
 				File(llb.Copy(contextState, "/", "/src")),
 		}).
-			Run(llb.Shlex(`yarn install`), baseRunOpts).
-			Run(llb.Shlex(`yarn build`), baseRunOpts).
+			Run(llb.Shlex(fmt.Sprintf(`sh -c 'cd %s && yarn install'`, ctrSrcPath)), baseRunOpts).
+			Run(llb.Shlex(fmt.Sprintf(`sh -c 'cd %s && yarn build'`, ctrSrcPath)), baseRunOpts).
 			File(llb.Mkfile(
 				"/entrypoint",
 				0755,
-				[]byte("#!/bin/sh\nnode --unhandled-rejections=strict "+filepath.Join("/src", filepath.Dir(cfgPath), sourcePath, "dist", "index.js")),
+				[]byte("#!/bin/sh\nnode --unhandled-rejections=strict "+filepath.Join(ctrSrcPath, "dist", "index.js")),
 			)),
 		p,
 	)
