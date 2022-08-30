@@ -38,7 +38,7 @@ func Generate(cmd *cobra.Command, args []string) {
 		}
 
 		for _, s := range ctx.Project.Extensions {
-			generateOutputDir := filepath.Join(workdir, filepath.Dir(configPath), s.Path)
+			generateOutputDir := filepath.Join(ctx.Workdir, filepath.Dir(ctx.ConfigPath), s.Path)
 
 			switch s.SDK {
 			case "go":
@@ -55,7 +55,7 @@ func Generate(cmd *cobra.Command, args []string) {
 		}
 
 		for _, s := range ctx.Project.Workflows {
-			generateOutputDir := filepath.Join(workdir, filepath.Dir(configPath), s.Path)
+			generateOutputDir := filepath.Join(ctx.Workdir, filepath.Dir(ctx.ConfigPath), s.Path)
 			switch s.SDK {
 			case "go":
 				if err := generateGoWorkflowStub(generateOutputDir); err != nil {

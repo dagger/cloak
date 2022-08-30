@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/Khan/genqlient/graphql"
@@ -31,7 +32,8 @@ import (
 
 // FIXME:(sipsma) not sure where this should go, but if stays here should not be public
 const (
-	WorkdirID = ".workdir"
+	WorkdirID     = ".workdir"
+	cloakYamlName = "cloak.yaml"
 )
 
 type Config struct {
@@ -44,9 +46,11 @@ type Config struct {
 
 type Context struct {
 	context.Context
-	Project   *core.Project
-	LocalDirs map[string]dagger.FSID
-	Client    graphql.Client
+	Project    *core.Project
+	LocalDirs  map[string]dagger.FSID
+	Client     graphql.Client
+	Workdir    string
+	ConfigPath string
 }
 
 type StartCallback func(Context) error
@@ -80,24 +84,33 @@ func Start(ctx context.Context, startOpts *Config, fn StartCallback) error {
 		return err
 	}
 
+	// FIXME:(sipsma) use viper to get env support automatically
 	if startOpts.Workdir == "" {
 		if v, ok := os.LookupEnv("CLOAK_WORKDIR"); ok {
 			startOpts.Workdir = v
-		} else {
-			cwd, err := os.Getwd()
-			if err != nil {
-				return err
-			}
-			startOpts.Workdir = cwd
 		}
 	}
-
 	if startOpts.ConfigPath == "" {
 		if v, ok := os.LookupEnv("CLOAK_CONFIG"); ok {
 			startOpts.ConfigPath = v
-		} else {
-			startOpts.ConfigPath = "./cloak.yaml"
 		}
+	}
+
+	if startOpts.Workdir == "" && startOpts.ConfigPath == "" {
+		configAbsPath, err := findConfig()
+		if err != nil {
+			return err
+		}
+		startOpts.Workdir = filepath.Dir(configAbsPath)
+		startOpts.ConfigPath = "./" + cloakYamlName
+	} else if startOpts.Workdir == "" {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		startOpts.Workdir = cwd
+	} else if startOpts.ConfigPath == "" {
+		startOpts.ConfigPath = "./" + cloakYamlName
 	}
 
 	router := router.New()
@@ -164,10 +177,12 @@ func Start(ctx context.Context, startOpts *Config, fn StartCallback) error {
 			}
 
 			if err := fn(Context{
-				Context:   ctx,
-				Project:   ext,
-				LocalDirs: localDirMapping,
-				Client:    cl,
+				Context:    ctx,
+				Project:    ext,
+				LocalDirs:  localDirMapping,
+				Client:     cl,
+				Workdir:    startOpts.Workdir,
+				ConfigPath: startOpts.ConfigPath,
 			}); err != nil {
 				return nil, err
 			}
@@ -332,4 +347,25 @@ func loadProject(ctx context.Context, cl graphql.Client, contextFS dagger.FSID, 
 	}
 
 	return &res.Core.Filesystem.LoadProject, nil
+}
+
+func findConfig() (string, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	for {
+		configPath := filepath.Join(wd, cloakYamlName)
+		// FIXME:(sipsma) decide how to handle symlinks
+		if _, err := os.Stat(configPath); err == nil {
+			return configPath, nil
+		}
+
+		if wd == "/" {
+			return "", fmt.Errorf("no %s found", cloakYamlName)
+		}
+
+		wd = filepath.Dir(wd)
+	}
 }
