@@ -111,6 +111,37 @@ func generateClients(proj, coreProj *core.Project, generateOutputDir, sdk string
 			//FIXME:(sipsma) fmt.Printf("unhandled sdk type for client stub %s\n", sdk)
 		}
 	}
+	// FIXME:(sipsma) deduplicate code w/ above
+	for _, ext := range proj.Extensions {
+		subdir := filepath.Join(generateOutputDir, "gen", proj.Name)
+		if err := os.MkdirAll(subdir, 0755); err != nil {
+			return err
+		}
+		if err := os.WriteFile(filepath.Join(subdir, ".gitattributes"), []byte("** linguist-generated=true"), 0600); err != nil {
+			return err
+		}
+		schemaPath := filepath.Join(subdir, "schema.graphql")
+
+		// TODO:(sipsma) ugly hack to make each schema/operation work independently when referencing core types.
+		fullSchema := coreProj.Schema + "\n\n" + ext.Schema
+		if err := os.WriteFile(schemaPath, []byte(fullSchema), 0600); err != nil {
+			return err
+		}
+		operationsPath := filepath.Join(subdir, "operations.graphql")
+		if err := os.WriteFile(operationsPath, []byte(ext.Operations), 0600); err != nil {
+			return err
+		}
+
+		switch sdk {
+		case "go":
+			if err := generateGoClientStubs(subdir); err != nil {
+				return err
+			}
+		case "":
+		default:
+			//FIXME:(sipsma) fmt.Printf("unhandled sdk type for client stub %s\n", sdk)
+		}
+	}
 	return nil
 }
 
