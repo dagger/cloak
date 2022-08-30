@@ -39,7 +39,9 @@ func Generate(cmd *cobra.Command, args []string) {
 
 		for _, s := range ctx.Project.Extensions {
 			generateOutputDir := filepath.Join(ctx.Workdir, filepath.Dir(ctx.ConfigPath), s.Path)
-
+			if err := generateClients(ctx.Project, coreProj, generateOutputDir, s.SDK); err != nil {
+				return err
+			}
 			switch s.SDK {
 			case "go":
 				if err := generateGoExtensionStub(generateOutputDir, s.Schema, coreProj); err != nil {
@@ -49,13 +51,13 @@ func Generate(cmd *cobra.Command, args []string) {
 			default:
 				//FIXME:(sipsma) fmt.Printf("unhandled sdk type for extension stub %s\n", s.SDK)
 			}
-			if err := generateClients(ctx.Project, coreProj, generateOutputDir, s.SDK); err != nil {
-				return err
-			}
 		}
 
 		for _, s := range ctx.Project.Workflows {
 			generateOutputDir := filepath.Join(ctx.Workdir, filepath.Dir(ctx.ConfigPath), s.Path)
+			if err := generateClients(ctx.Project, coreProj, generateOutputDir, s.SDK); err != nil {
+				return err
+			}
 			switch s.SDK {
 			case "go":
 				if err := generateGoWorkflowStub(generateOutputDir); err != nil {
@@ -64,9 +66,6 @@ func Generate(cmd *cobra.Command, args []string) {
 			case "":
 			default:
 				//FIXME:(sipsma) fmt.Printf("unhandled sdk type for workflow stub %s\n", s.SDK)
-			}
-			if err := generateClients(ctx.Project, coreProj, generateOutputDir, s.SDK); err != nil {
-				return err
 			}
 		}
 
