@@ -1,2 +1,5 @@
 ---
 dependencies: []
+scripts:
+  - path: .
+    sdk: go
