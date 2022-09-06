@@ -20,6 +20,7 @@ require (
 	github.com/rs/zerolog v1.28.0
 	github.com/spf13/cobra v1.5.0
 	github.com/stretchr/testify v1.8.0
+	github.com/udacity/graphb v0.0.0-20190520214654-912b8fd361d7
 	github.com/vektah/gqlparser/v2 v2.5.0
 	go.opentelemetry.io/otel v1.9.0
 	go.opentelemetry.io/otel/exporters/jaeger v1.9.0
