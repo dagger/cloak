@@ -1,7 +1,8 @@
 package querybuilder
 
 import (
-	"fmt"
+	"encoding/json"
+	"sort"
 
 	"github.com/pkg/errors"
 	"github.com/udacity/graphb"
@@ -22,16 +23,7 @@ type Selection struct {
 
 	root         *Selection
 	subSelection map[string]*Selection
-}
-
-func (s *Selection) dup() *Selection {
-	return &Selection{
-		name:         s.name,
-		alias:        s.alias,
-		args:         s.args,
-		root:         s.root,
-		subSelection: s.subSelection,
-	}
+	bind         interface{}
 }
 
 func (s *Selection) SelectAs(alias, name string) *Selection {
@@ -67,9 +59,30 @@ func (s *Selection) Arg(name string, value any) *Selection {
 	return s
 }
 
+func (s *Selection) Bind(v interface{}) *Selection {
+	s.bind = v
+	return s
+}
+
+func (s *Selection) resultName() string {
+	if s.alias != "" {
+		return s.alias
+	}
+	return s.name
+}
+
 func (s *Selection) buildFields() []*graphb.Field {
 	fields := []*graphb.Field{}
+	subFields := make([]*Selection, 0, len(s.subSelection))
 	for _, sub := range s.subSelection {
+		subFields = append(subFields, sub)
+	}
+	// Sort fields so the query is stable
+	sort.Slice(subFields, func(i, j int) bool {
+		return subFields[i].resultName() < subFields[j].resultName()
+	})
+
+	for _, sub := range subFields {
 		field := graphb.MakeField(sub.name)
 		fields = append(fields, field)
 		if sub.alias != "" {
@@ -82,7 +95,6 @@ func (s *Selection) buildFields() []*graphb.Field {
 			)
 
 			if v, ok := value.(graphb.Argument); ok {
-				fmt.Printf("VVV: %+v\n", v)
 				arg = graphb.ArgumentCustomType(name, v)
 			} else {
 				arg, err = graphb.ArgumentAny(name, value)
@@ -108,4 +120,27 @@ func (s *Selection) Build() (string, error) {
 		return "", errors.WithStack(err)
 	}
 	return graphb.StringFromChan(strCh), nil
+}
+
+func (s *Selection) Unpack(data interface{}) error {
+	return s.root.unpack(data)
+}
+
+func (s *Selection) unpack(data interface{}) error {
+	if s.bind != nil {
+		marshalled, err := json.Marshal(data)
+		if err != nil {
+			return err
+		}
+		json.Unmarshal(marshalled, s.bind)
+	}
+
+	for _, sub := range s.subSelection {
+		field := data.(map[string]interface{})[sub.resultName()]
+		if err := sub.unpack(field); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
