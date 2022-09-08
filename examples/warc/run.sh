@@ -4,12 +4,12 @@ set -ex
 
 # https://archive.ph/hzM6G
 
-URL="cloudnativeday.ch"
+URL="https://cloudnativeday.ch/an-electric-automation-engine"
 
 # https://www.petekeen.net/archiving-websites-with-wget
 wget \
     --mirror \
-    --warc-file="$URL" \
+    --warc-file="cloudnative.ch" \
     --warc-cdx \
     --page-requisites \
     --html-extension \
@@ -17,7 +17,7 @@ wget \
     --execute robots=off \
     --directory-prefix=. \
     --span-hosts \
-    --domains="$URL",js.tito.io \
+    --domains=cloudnative.ch,js.tito.io \
     --wait=1 \
     --random-wait \
     "$URL"
