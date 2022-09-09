@@ -10,47 +10,60 @@ import (
 
 func main() {
 	if err := engine.Start(context.Background(), &engine.Config{}, func(ctx engine.Context) error {
+		// Configure current directory for mounting
 		workdirResp, err := core.Workdir(ctx)
 		if err != nil {
 			return err
 		}
+		workdirFs := workdirResp.Host.Workdir.Read.ID
 
-		// Start from Alpine
+		// Start with the Alpine image
 		image, err := core.Image(ctx, "alpine:3.15")
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to resolve image: %s", err)
 		}
 
-		fs := &image.Core.Image
+		alpineFs := &image.Core.Image
 
-		// Install deps & declare workdir
-		deps, err := core.Exec(ctx, fs.ID, core.ExecInput{
-			Args:    []string{"apk", "add", "-U", "--no-cache", "wget", "bash"},
-			Workdir: "/mnt",
+		// Install deps
+		deps, err := core.Exec(ctx, alpineFs.ID, core.ExecInput{
+			Args: []string{"apk", "add", "-U", "--no-cache", "bash", "git", "wget"},
 		})
 		if err != nil {
 			return fmt.Errorf("failed to install: %s", err)
 		}
-		fs = deps.Core.Filesystem.Exec.Fs
+		depsFs := deps.Core.Filesystem.Exec.Fs
 
-		// Mount current directory & run script
-		webArchive, err := core.ExecGetMount(ctx, fs.ID, core.ExecInput{
-			Args:    []string{"./run.sh"},
+		// Generate Web ARChive
+		webArchive, err := core.ExecGetMount(ctx, depsFs.ID, core.ExecInput{
+			Args:    []string{"./webarchive.sh"},
 			Workdir: "/mnt",
 			Mounts: []core.MountInput{
-				core.MountInput{Fs: workdirResp.Host.Workdir.Read.ID, Path: "/mnt/"},
+				core.MountInput{Fs: workdirFs, Path: "/mnt"},
 			},
 		}, "/mnt")
 		if err != nil {
-			return fmt.Errorf("failed to run script: %s", err)
+			return fmt.Errorf("failed to generate Web ARChive: %s", err)
 		}
-		fs = webArchive.Core.Filesystem.Exec.Mount
+		webArchiveFs := webArchive.Core.Filesystem.Exec.Fs
 
-		// Export downloaded content back to mounted directory
-		_, err = core.WriteWorkdir(ctx, fs.ID)
+		// Git commit & push content
+		_, err = core.ExecGetMount(ctx, depsFs.ID, core.ExecInput{
+			Args:    []string{"ls", "-lah"},
+			Workdir: "/mnt",
+			Mounts: []core.MountInput{
+				core.MountInput{Fs: webArchiveFs.ID, Path: "/mnt/"},
+			},
+		}, "/mnt")
 		if err != nil {
-			return fmt.Errorf("failed to export downloaded content: %s", err)
+			return fmt.Errorf("failed to git commit: %s", err)
 		}
+
+		// MAYBE export downloaded content back to mounted directory
+		// _, err = core.WriteWorkdir(ctx, webArchiveFs.ID)
+		// if err != nil {
+		// 	return fmt.Errorf("failed to export Web ARChive: %s", err)
+		// }
 
 		return nil
 	}); err != nil {

@@ -1,6 +1,8 @@
 This is a work-in-progress demo for https://cloudnativeday.ch/an-electric-automation-engine/
 
-There is significant amount of background context in this repository: https://github.com/gerhard/cnd . While this repository is still private, we expect to make it public sometimes in September 2022. I intend to update this when that happens.
+There is significant amount of background context in this repository: https://github.com/gerhard/cnd .
+While this repository is still private, we expect to make it public sometimes in September 2022.
+I intend to update this when that happens.
 
 ## Demo
 
