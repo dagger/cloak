@@ -38,7 +38,7 @@ func goRuntime(ctx context.Context, contextFS *filesystem.Filesystem, cfgPath, s
 			Run(llb.Shlex(
 				fmt.Sprintf(
 					`go build -o /entrypoint -ldflags '-s -d -w' %s`,
-					filepath.Join(workdir, filepath.Dir(cfgPath), sourcePath),
+					filepath.ToSlash(filepath.Join(workdir, filepath.Dir(cfgPath), sourcePath)),
 				)),
 				llb.Dir(workdir),
 				llb.AddEnv("GOMODCACHE", "/root/.cache/gocache"),
@@ -64,7 +64,7 @@ func tsRuntime(ctx context.Context, contextFS *filesystem.Filesystem, cfgPath, s
 		return nil, err
 	}
 
-	ctrSrcPath := filepath.Join("/src", filepath.Dir(cfgPath), sourcePath)
+	ctrSrcPath := filepath.ToSlash(filepath.Join("/src", filepath.Dir(cfgPath), sourcePath))
 
 	addSSHKnownHosts, err := withGithubSSHKnownHosts()
 	if err != nil {
@@ -110,7 +110,7 @@ func dockerfileRuntime(ctx context.Context, contextFS *filesystem.Filesystem, cf
 
 	opts := map[string]string{
 		"platform": platforms.Format(p),
-		"filename": filepath.Join(filepath.Dir(cfgPath), sourcePath, "Dockerfile"),
+		"filename": filepath.ToSlash(filepath.Join(filepath.Dir(cfgPath), sourcePath, "Dockerfile")),
 	}
 	inputs := map[string]*pb.Definition{
 		dockerfilebuilder.DefaultLocalNameContext:    def,
