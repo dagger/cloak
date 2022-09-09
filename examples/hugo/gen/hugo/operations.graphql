@@ -1,0 +1,7 @@
+query Generate($src: FSID!) {
+  hugo {
+    generate(src: $src) {
+      id
+    }
+  }
+}

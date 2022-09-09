@@ -1,0 +1,7 @@
+extend type Query {
+  hugo: hugo!
+}
+
+type hugo {
+  generate(src: FSID!): Filesystem!
+}
