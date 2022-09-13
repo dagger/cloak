@@ -109,9 +109,9 @@ func Schema(h any) (string, error) {
 
 	m := method{name, methods}
 	log.Println("name:", name)
-	tpl := template.Must(template.New("schema").Funcs(template.FuncMap{"join": func(sep string, s []string) string { return strings.Join(s, sep) }}).Parse(` {{ .Name }} {
+	tpl := template.Must(template.New("schema").Funcs(template.FuncMap{"join": joinOut, "formatArgs": formatArgs}).Parse(` {{ .Name }} {
 		{{ range .Methods -}}
-		{{ .Name }}( {{ join "," .ArgsIn }} ) {{join "," .ArgsOut}}
+		{{ .Name }}( {{ formatArgs ", " .ArgsIn }} ) {{join ", " .ArgsOut}}
 		{{- end }}
 	}`))
 
@@ -122,4 +122,20 @@ func Schema(h any) (string, error) {
 	}
 
 	return b.String(), nil
+}
+
+func joinOut(sep string, s []string) string {
+	if len(s) < 2 {
+		return s[0]
+	}
+
+	return "(" + strings.Join(s, sep) + ")"
+}
+
+func formatArgs(sep string, s []string) string {
+	for i, v := range s {
+		// we create the arg name + arg type couple
+		s[i] = string(v[0]) + ": " + v
+	}
+	return strings.Join(s, sep)
 }
