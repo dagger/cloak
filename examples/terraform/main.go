@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/dagger/cloak/examples/alpine/gen/core"
 	"github.com/dagger/cloak/sdk/go/dagger"
@@ -20,6 +21,7 @@ func tfExec(ctx context.Context, config dagger.FSID, token dagger.SecretID, comm
 
 	tf, err := core.Image(ctx, "hashicorp/terraform:latest")
 	if err != nil {
+		fmt.Printf("cant load image: %v", err)
 		return fs, err
 	}
 
@@ -40,6 +42,7 @@ func tfExec(ctx context.Context, config dagger.FSID, token dagger.SecretID, comm
 		},
 	})
 	if err != nil {
+		fmt.Printf("cant execute plan: %v", err)
 		return fs, err
 	}
 	return exec.Core.Filesystem.Exec.Fs, nil
