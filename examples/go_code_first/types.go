@@ -17,8 +17,8 @@ type FS struct {
 	Path string
 }
 
-func (h *Hugo) Generate(ctx context.Context, source FS) FS {
-	return FS{}
+func (h *Hugo) Generate(ctx context.Context, source FS) (FS, error) {
+	return FS{}, nil
 }
 
 type Method struct {
@@ -35,9 +35,15 @@ func getMethods(t reflect.Type) []Method {
 		// args
 		mType := m.Type
 		var argsIn []string
-		for j := 0; j < mType.NumIn(); j++ {
+		// we ignore the first arg, as it is the pointer to the method owner
+		for j := 1; j < mType.NumIn(); j++ {
 			arg := mType.In(j)
 			argName := strings.ToLower(arg.Name())
+			// FIXME: we need to ignore context.Context only, not other Context types
+			if argName == "context" {
+				// we ignore context.Context
+				continue
+			}
 			argsIn = append(argsIn, argName)
 		}
 
@@ -45,6 +51,10 @@ func getMethods(t reflect.Type) []Method {
 		for j := 0; j < mType.NumOut(); j++ {
 			arg := mType.Out(j)
 			argName := strings.ToLower(arg.Name())
+			// FIXME: we need to ignore pure error types, not just types named "error"
+			if argName == "error" {
+				continue
+			}
 			argsOut = append(argsOut, argName)
 		}
 		methods = append(methods, Method{mName, argsIn, argsOut})
