@@ -3,7 +3,7 @@ package nogen
 import "testing"
 
 func TestSchema(t *testing.T) {
-	h := Hugo{}
+	h := &Hugo{}
 
 	s, err := Schema(h)
 	if err != nil {
