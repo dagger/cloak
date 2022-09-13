@@ -25,6 +25,22 @@ type ApplyTerraform struct {
 // GetApply returns ApplyTerraform.Apply, and is useful for accessing the field via an interface.
 func (v *ApplyTerraform) GetApply() dagger.Filesystem { return v.Apply }
 
+// FmtResponse is returned by Fmt on success.
+type FmtResponse struct {
+	Terraform FmtTerraform `json:"terraform"`
+}
+
+// GetTerraform returns FmtResponse.Terraform, and is useful for accessing the field via an interface.
+func (v *FmtResponse) GetTerraform() FmtTerraform { return v.Terraform }
+
+// FmtTerraform includes the requested fields of the GraphQL type Terraform.
+type FmtTerraform struct {
+	Fmt dagger.Filesystem `json:"fmt"`
+}
+
+// GetFmt returns FmtTerraform.Fmt, and is useful for accessing the field via an interface.
+func (v *FmtTerraform) GetFmt() dagger.Filesystem { return v.Fmt }
+
 // PlanResponse is returned by Plan on success.
 type PlanResponse struct {
 	Terraform PlanTerraform `json:"terraform"`
@@ -52,6 +68,18 @@ func (v *__ApplyInput) GetConfig() dagger.FSID { return v.Config }
 
 // GetToken returns __ApplyInput.Token, and is useful for accessing the field via an interface.
 func (v *__ApplyInput) GetToken() dagger.SecretID { return v.Token }
+
+// __FmtInput is used internally by genqlient
+type __FmtInput struct {
+	Config dagger.FSID     `json:"config"`
+	Token  dagger.SecretID `json:"token"`
+}
+
+// GetConfig returns __FmtInput.Config, and is useful for accessing the field via an interface.
+func (v *__FmtInput) GetConfig() dagger.FSID { return v.Config }
+
+// GetToken returns __FmtInput.Token, and is useful for accessing the field via an interface.
+func (v *__FmtInput) GetToken() dagger.SecretID { return v.Token }
 
 // __PlanInput is used internally by genqlient
 type __PlanInput struct {
@@ -95,6 +123,47 @@ query Apply ($config: FSID!, $token: SecretID!) {
 	}
 
 	var data ApplyResponse
+	resp := &graphql.Response{Data: &data}
+
+	err = client.MakeRequest(
+		ctx,
+		req,
+		resp,
+	)
+
+	return &data, err
+}
+
+func Fmt(
+	ctx context.Context,
+	config dagger.FSID,
+	token dagger.SecretID,
+) (*FmtResponse, error) {
+	req := &graphql.Request{
+		OpName: "Fmt",
+		Query: `
+query Fmt ($config: FSID!, $token: SecretID!) {
+	terraform {
+		fmt(config: $config, token: $token) {
+			id
+		}
+	}
+}
+`,
+		Variables: &__FmtInput{
+			Config: config,
+			Token:  token,
+		},
+	}
+	var err error
+	var client graphql.Client
+
+	client, err = dagger.Client(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var data FmtResponse
 	resp := &graphql.Response{Data: &data}
 
 	err = client.MakeRequest(

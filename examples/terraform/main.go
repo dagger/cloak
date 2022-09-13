@@ -9,11 +9,15 @@ import (
 )
 
 func (r *terraform) apply(ctx context.Context, config dagger.FSID, token dagger.SecretID) (*dagger.Filesystem, error) {
-	return tfExec(ctx, config, token, "plan")
+	return tfExec(ctx, config, token, "apply")
 }
 
 func (r *terraform) plan(ctx context.Context, config dagger.FSID, token dagger.SecretID) (*dagger.Filesystem, error) {
 	return tfExec(ctx, config, token, "plan")
+}
+
+func (r *terraform) fmt(ctx context.Context, config dagger.FSID, token dagger.SecretID) (*dagger.Filesystem, error) {
+	return tfExec(ctx, config, token, "fmt")
 }
 
 func tfExec(ctx context.Context, config dagger.FSID, token dagger.SecretID, command string) (*dagger.Filesystem, error) {

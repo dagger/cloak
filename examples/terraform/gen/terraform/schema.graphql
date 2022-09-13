@@ -5,10 +5,13 @@ extend type Query {
 type Terraform {
   apply(config: FSID!, token: SecretID!): Filesystem!
   plan(config: FSID!, token: SecretID!): Filesystem!
+  fmt(config: FSID!, token: SecretID!): Filesystem!
 }
 
 extend type Filesystem {
   terraformApply(token: SecretID!): Filesystem!
+  terraformPlan(token: SecretID!): Filesystem!
+  terraformFmt(token: SecretID!): Filesystem!
 }
 
 extend type Query {

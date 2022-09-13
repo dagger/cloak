@@ -94,5 +94,38 @@ func main() {
 				token,
 			)
 		},
+		"Terraform.fmt": func(ctx context.Context, fc dagger.ArgsInput) (interface{}, error) {
+			var bytes []byte
+			_ = bytes
+			var err error
+			_ = err
+
+			var config dagger.FSID
+
+			bytes, err = json.Marshal(fc.Args["config"])
+			if err != nil {
+				return nil, err
+			}
+			if err := json.Unmarshal(bytes, &config); err != nil {
+				return nil, err
+			}
+
+			var token dagger.SecretID
+
+			bytes, err = json.Marshal(fc.Args["token"])
+			if err != nil {
+				return nil, err
+			}
+			if err := json.Unmarshal(bytes, &token); err != nil {
+				return nil, err
+			}
+
+			return (&terraform{}).fmt(ctx,
+
+				config,
+
+				token,
+			)
+		},
 	})
 }

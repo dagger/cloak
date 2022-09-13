@@ -19,3 +19,14 @@ query Plan($config: FSID!, $token: SecretID!) {
     }
   }
 }
+
+query Fmt($config: FSID!, $token: SecretID!) {
+  terraform {
+    fmt(
+        config: $config
+        token: $token
+    ) {
+      id
+    }
+  }
+}
