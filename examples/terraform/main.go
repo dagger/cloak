@@ -30,7 +30,7 @@ func tfExec(ctx context.Context, config dagger.FSID, token dagger.SecretID, comm
 	}
 
 	exec, err := core.Exec(ctx, tf.Core.Image.ID, core.ExecInput{
-		Args:    []string{command},
+		Args:    []string{"terraform", command},
 		Workdir: "/src",
 		Mounts: []core.MountInput{
 			{
