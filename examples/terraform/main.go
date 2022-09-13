@@ -9,18 +9,21 @@ import (
 )
 
 func (r *terraform) apply(ctx context.Context, config dagger.FSID, token dagger.SecretID) (*dagger.Filesystem, error) {
-	return tfExec(ctx, config, token, "apply")
+	cmd := []string{"terraform", "apply", "-auto-approve"}
+	return tfExec(ctx, config, token, cmd)
 }
 
 func (r *terraform) plan(ctx context.Context, config dagger.FSID, token dagger.SecretID) (*dagger.Filesystem, error) {
-	return tfExec(ctx, config, token, "plan")
+	cmd := []string{"terraform", "plan"}
+	return tfExec(ctx, config, token, cmd)
 }
 
 func (r *terraform) fmt(ctx context.Context, config dagger.FSID, token dagger.SecretID) (*dagger.Filesystem, error) {
-	return tfExec(ctx, config, token, "fmt")
+	cmd := []string{"terraform", "fmt"}
+	return tfExec(ctx, config, token, cmd)
 }
 
-func tfExec(ctx context.Context, config dagger.FSID, token dagger.SecretID, command string) (*dagger.Filesystem, error) {
+func tfExec(ctx context.Context, config dagger.FSID, token dagger.SecretID, command []string) (*dagger.Filesystem, error) {
 	fs := &dagger.Filesystem{}
 
 	tf, err := core.Image(ctx, "hashicorp/terraform:latest")
@@ -30,7 +33,7 @@ func tfExec(ctx context.Context, config dagger.FSID, token dagger.SecretID, comm
 	}
 
 	exec, err := core.Exec(ctx, tf.Core.Image.ID, core.ExecInput{
-		Args:    []string{"terraform", command},
+		Args:    command,
 		Workdir: "/src",
 		Mounts: []core.MountInput{
 			{
