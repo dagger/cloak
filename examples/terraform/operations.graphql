@@ -1,0 +1,21 @@
+query Apply($config: FSID!, $token: SecretID!) {
+  terraform {
+    apply(
+        config: $config
+        token: $token
+    ) {
+      id
+    }
+  }
+}
+
+query Plan($config: FSID!, $token: SecretID!) {
+  terraform {
+    plan(
+        config: $config
+        token: $token
+    ) {
+      id
+    }
+  }
+}

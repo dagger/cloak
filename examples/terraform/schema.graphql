@@ -1,0 +1,12 @@
+extend type Query {
+  terraform: Terraform!
+}
+
+type Terraform {
+  apply(config: FSID!, token: SecretID!): Filesystem!
+  plan(config: FSID!, token: SecretID!): Filesystem!
+}
+
+extend type Filesystem {
+  terraformApply(token: SecretID!): Filesystem!
+}

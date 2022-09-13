@@ -1,0 +1,4 @@
+name: terraform
+extensions:
+  - path: .
+    sdk: go
