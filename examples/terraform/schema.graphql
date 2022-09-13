@@ -9,4 +9,5 @@ type Terraform {
 
 extend type Filesystem {
   terraformApply(token: SecretID!): Filesystem!
+  terraformPlan(token: SecretID!): Filesystem!
 }
