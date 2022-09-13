@@ -10,6 +10,8 @@ import (
 	"github.com/dagger/cloak/engine"
 	"github.com/dagger/cloak/examples/alpine/gen/alpine"
 	"github.com/dagger/cloak/sdk/go/dagger"
+	"gocloud.dev/blob"
+	_ "gocloud.dev/blob/gcsblob"
 	"golang.org/x/oauth2/google"
 
 	"hugo/gen/core"
@@ -94,6 +96,22 @@ func main() {
 		if err != nil {
 			return fmt.Errorf("write on host: %w", err)
 		}
+
+		bucket, err := blob.OpenBucket(ctx, "gs://gerhard-cnd-deploy-test")
+		if err != nil {
+			return fmt.Errorf("open bucket: %w", err)
+		}
+		defer bucket.Close()
+
+		dd, err := os.ReadDir("/mnt/test")
+		if err != nil {
+			return fmt.Errorf("test open dir: %w", err)
+		}
+
+		for _, d := range dd {
+			log.Println("LOL:", d.Name())
+		}
+
 		return nil
 	})
 	if err != nil {
