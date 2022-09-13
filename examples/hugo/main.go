@@ -4,10 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 
 	"github.com/dagger/cloak/engine"
 	"github.com/dagger/cloak/examples/alpine/gen/alpine"
 	"github.com/dagger/cloak/sdk/go/dagger"
+	"golang.org/x/oauth2/google"
 
 	"hugo/gen/core"
 )
@@ -19,10 +22,29 @@ func (r *hugo) generate(ctx context.Context, src dagger.FSID) (*dagger.Filesyste
 }
 
 func main() {
+	credsFilePath := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+	if credsFilePath == "" {
+		log.Fatal("set GOOGLE_APPLICATION_CREDENTIALS to your location of your GCP service account file")
+	}
+
+	credsDirPath, credsFileRelPath := filepath.Split(credsFilePath)
+	_ = credsFileRelPath
+
 	err := engine.Start(context.Background(), &engine.Config{
 		Workdir:    ".",
 		ConfigPath: "./cloak.yaml",
+		LocalDirs: map[string]string{
+			"google_application_credentials": credsDirPath,
+		},
 	}, func(ctx engine.Context) error {
+
+		// use GOOGLE_APPLICATION_CREDENTIALS
+		creds, err := google.FindDefaultCredentials(ctx)
+		if err != nil {
+			return fmt.Errorf("get GCP creds: %w", err)
+		}
+		_ = creds
+
 		alp, err := alpine.Build(ctx, []string{"curl", "git"})
 		if err != nil {
 			return err

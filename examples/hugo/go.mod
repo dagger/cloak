@@ -5,6 +5,7 @@ go 1.19
 require (
 	github.com/Khan/genqlient v0.5.0
 	github.com/dagger/cloak v0.0.0-20220909014826-f969035e85a4
+	golang.org/x/oauth2 v0.0.0-20220722155238-128564f6959c
 )
 
 require (
