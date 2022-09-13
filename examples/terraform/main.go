@@ -39,5 +39,8 @@ func tfExec(ctx context.Context, config dagger.FSID, token dagger.SecretID, comm
 			},
 		},
 	})
-	return exec.Core.Filesystem.Exec.Fs, err
+	if err != nil {
+		return fs, err
+	}
+	return exec.Core.Filesystem.Exec.Fs, nil
 }
