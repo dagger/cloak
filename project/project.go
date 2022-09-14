@@ -222,6 +222,8 @@ func (s *CompiledRemoteSchema) Dependencies() []router.ExecutableSchema {
 
 func (s *CompiledRemoteSchema) resolver(runtimeFS *filesystem.Filesystem) graphql.FieldResolveFn {
 	return func(p graphql.ResolveParams) (any, error) {
+		parent := router.Parent[any](p.Source)
+
 		pathArray := p.Info.Path.AsArray()
 		name := fmt.Sprintf("%+v", pathArray)
 
@@ -270,7 +272,7 @@ func (s *CompiledRemoteSchema) resolver(runtimeFS *filesystem.Filesystem) graphq
 		// to just use go type matching because the parent result may be a Filesystem struct or
 		// an untyped map[string]interface{}.
 		if p.Info.ParentType.Name() == "Filesystem" {
-			obj, err := filesystem.FromSource(p.Source)
+			obj, err := filesystem.FromSource(parent.Val)
 			if err != nil {
 				return nil, err
 			}
@@ -308,7 +310,7 @@ func (s *CompiledRemoteSchema) resolver(runtimeFS *filesystem.Filesystem) graphq
 		if err := json.Unmarshal(outputBytes, &output); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal output: %w", err)
 		}
-		return output, nil
+		return router.WithVal(parent, output), nil
 	}
 }
 
