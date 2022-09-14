@@ -3,7 +3,6 @@ package nogen
 import (
 	"bytes"
 	"context"
-	"log"
 	"reflect"
 	"strings"
 	"text/template"
@@ -19,6 +18,10 @@ type FS struct {
 
 func (h *Hugo) Generate(ctx context.Context, source FS) (FS, error) {
 	return FS{}, nil
+}
+
+func (h *Hugo) Deploy(ctx context.Context, source FS) (string, error) {
+	return "http://deployed.url/", nil
 }
 
 type Method struct {
@@ -74,7 +77,6 @@ func Schema(h any) (string, error) {
 	var name string
 	var pt reflect.Type
 	if t.Kind() != reflect.Pointer {
-		log.Println("ptr:", false)
 		name = strings.ToLower(t.Name())
 		pt = reflect.PointerTo(t)
 		methods = append(methods, getMethods(pt)...)
@@ -83,12 +85,8 @@ func Schema(h any) (string, error) {
 		}
 	}
 
-	_ = pt
-	//name := strings.ToLower(t.Name())
-
 	var ptt reflect.Type
 	if t.Kind() == reflect.Pointer {
-		log.Println("ptr:", true)
 		ptt = t
 		name = strings.ToLower(t.Elem().Name())
 		pttMethods := getMethods(ptt)
@@ -108,12 +106,11 @@ func Schema(h any) (string, error) {
 	}
 
 	m := method{name, methods}
-	log.Println("name:", name)
-	tpl := template.Must(template.New("schema").Funcs(template.FuncMap{"join": joinOut, "formatArgs": formatArgs}).Parse(` {{ .Name }} {
-		{{ range .Methods -}}
-		{{ .Name }}( {{ formatArgs ", " .ArgsIn }} ) {{join ", " .ArgsOut}}
+	tpl := template.Must(template.New("schema").Funcs(template.FuncMap{"joinOut": joinOut, "formatArgs": formatArgs}).Parse(` {{ .Name }} {
+		{{- range .Methods }}
+		{{ .Name }}({{ formatArgs ", " .ArgsIn }}) {{- with .ArgsOut }}: {{joinOut ", " .}}{{ end }}
 		{{- end }}
-	}`))
+}`))
 
 	var b bytes.Buffer
 	err := tpl.Execute(&b, m)
