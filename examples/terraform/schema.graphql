@@ -8,10 +8,3 @@ type Terraform {
   fmt(config: FSID!, token: SecretID!): Filesystem!
   destroy(config: FSID!, token: SecretID!): Filesystem!
 }
-
-extend type Filesystem {
-  terraformApply(token: SecretID!): Filesystem!
-  terraformPlan(token: SecretID!): Filesystem!
-  terraformFmt(token: SecretID!): Filesystem!
-  terraformDestroy(token: SecretID!): Filesystem!
-}

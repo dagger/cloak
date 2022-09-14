@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"strings"
 
-	"github.com/dagger/cloak/examples/alpine/gen/core"
+	"github.com/Khan/genqlient/graphql"
 	"github.com/dagger/cloak/sdk/go/dagger"
 )
 
@@ -29,33 +30,112 @@ func (r *terraform) destroy(ctx context.Context, config dagger.FSID, token dagge
 }
 
 func tfExec(ctx context.Context, config dagger.FSID, token dagger.SecretID, command []string) (*dagger.Filesystem, error) {
-	fs := &dagger.Filesystem{}
+	client, err := dagger.Client(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-	tf, err := core.Image(ctx, "hashicorp/terraform:latest")
+	fsid, err := image(ctx, client, "hashicorp/terraform:latest")
 	if err != nil {
 		fmt.Printf("cant load image: %v", err)
-		return fs, err
+		return nil, err
 	}
 
-	exec, err := core.Exec(ctx, tf.Core.Image.ID, core.ExecInput{
-		Args:    command,
-		Workdir: "/src",
-		Mounts: []core.MountInput{
-			{
-				Fs:   config,
-				Path: "/src",
-			},
-		},
-		SecretEnv: []core.ExecSecretEnvInput{
-			{
-				Name: "TF_TOKEN_app_terraform_io",
-				Id:   token,
-			},
-		},
-	})
+	exec, err := exec(ctx, client, fsid, config, token, command)
 	if err != nil {
 		fmt.Printf("cant execute plan: %v", err)
-		return fs, err
+		return nil, err
 	}
-	return exec.Core.Filesystem.Exec.Fs, nil
+
+	return &dagger.Filesystem{ID: exec}, nil
+}
+
+func image(ctx context.Context, client graphql.Client, ref string) (dagger.FSID, error) {
+	req := &graphql.Request{
+		Query: `
+query Image ($ref: String!) {
+	core {
+		image(ref: $ref) {
+			id
+		}
+	}
+}
+`,
+		Variables: map[string]any{
+			"ref": ref,
+		},
+	}
+	resp := struct {
+		Core struct {
+			Image struct {
+				ID dagger.FSID
+			}
+		}
+	}{}
+	err := client.MakeRequest(ctx, req, &graphql.Response{Data: &resp})
+	if err != nil {
+		return "", err
+	}
+
+	return resp.Core.Image.ID, nil
+}
+
+func exec(ctx context.Context, client graphql.Client, root dagger.FSID, mount dagger.FSID, token dagger.SecretID, args []string) (dagger.FSID, error) {
+	flatArgs := "\""
+	flatArgs = flatArgs + strings.Join(args, "\", \"")
+	flatArgs = flatArgs + "\""
+
+	req := &graphql.Request{
+		Query: `
+query TfExec ($root: FSID!, $mount: FSID!, $args: String!, $token: SecretID!) {
+	core {
+		filesystem(id: $root) {
+			exec(input: {
+				args: [$args],
+				workdir: "/src",
+				mounts: [
+					{
+						path: "/src",
+						fs: $mount
+					}
+				]
+				secretEnv: [
+					{
+						name: "TF_TOKEN_app_terraform_io",
+						id: $token
+					}
+				]
+			}) {
+				fs {
+					id
+				}
+			}
+		}
+	}
+}
+`,
+		Variables: map[string]any{
+			"root":  root,
+			"mount": mount,
+			"args":  flatArgs,
+			"token": token,
+		},
+	}
+	resp := struct {
+		Core struct {
+			Filesystem struct {
+				Exec struct {
+					FS struct {
+						ID dagger.FSID
+					}
+				}
+			}
+		}
+	}{}
+	err := client.MakeRequest(ctx, req, &graphql.Response{Data: &resp})
+	if err != nil {
+		return "", err
+	}
+
+	return resp.Core.Filesystem.Exec.FS.ID, nil
 }
