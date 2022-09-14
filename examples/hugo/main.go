@@ -19,8 +19,78 @@ import (
 
 func (r *hugo) generate(ctx context.Context, src dagger.FSID) (*dagger.Filesystem, error) {
 
-	panic("implement me")
+	alp, err := alpine.Build(ctx, []string{"curl", "git"})
+	if err != nil {
+		return nil, err
+	}
 
+	curled, err := core.Exec(ctx, alp.Alpine.Build.ID, core.ExecInput{
+		Args: []string{"sh", "-c", "curl -L https://github.com/gohugoio/hugo/releases/download/v0.102.3/hugo_0.102.3_Linux-64bit.tar.gz | tar -xz"},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("install hugo: %w", err)
+	}
+	_ = curled
+
+	themed, err := core.Exec(ctx, curled.Core.Filesystem.Exec.Fs.ID, core.ExecInput{
+		Args: []string{"sh", "-c", "git init . && git submodule init && git submodule add https://github.com/theNewDynamic/gohugo-theme-ananke.git ./mnt/themes/ananke"},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("git submodule add: %w", err)
+	}
+	_ = themed
+
+	wd, err := core.Workdir(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("workdir: %w", err)
+	}
+
+	wdID := wd.Host.Workdir.Read.ID
+	_ = wdID
+
+	generated, err := core.ExecGetMount(ctx, themed.Core.Filesystem.Exec.Fs.ID, core.ExecInput{
+		Mounts: []core.MountInput{
+			{
+				Fs:   wdID,
+				Path: "/mnt",
+			},
+		},
+		Workdir: "/mnt/test",
+		Args:    []string{"sh", "-c", "/hugo --buildFuture"},
+	}, "/mnt")
+	if err != nil {
+		return nil, fmt.Errorf("hugo generate: %w", err)
+	}
+	return generated.Core.Filesystem.Dockerbuild, nil
+
+}
+func (r *hugo) deploy(ctx context.Context, contents dagger.FSID, bucketURL string, subdir *string, token dagger.SecretID) error {
+	//readSecretOutput, err := core.Secret(ctx, token)
+	//if err != nil {
+	//	return fmt.Errorf("failed to read secret: %w", err)
+	//}
+
+	bucket, err := blob.OpenBucket(ctx, bucketURL)
+	if err != nil {
+		return fmt.Errorf("open bucket: %w", err)
+	}
+	defer bucket.Close()
+
+	deployDir := "/mnt/contents"
+	dirents, err := os.ReadDir("/mnt")
+	if err != nil {
+		return err
+	}
+	for _, dirent := range dirents {
+		fmt.Println(dirent.Name())
+	}
+
+	if subdir != nil {
+		deployDir = filepath.Join(deployDir, *subdir)
+	}
+	//bucket.WriteAll()
+
+	return nil
 }
 
 func main() {

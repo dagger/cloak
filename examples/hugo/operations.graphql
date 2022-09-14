@@ -5,3 +5,9 @@ query Generate($src: FSID!) {
     }
   }
 }
+
+query Deploy($contents: FSID!, $bucketURL: String!, $subdir: String, $token: SecretID!) {
+  hugo {
+    deploy(contents: $contents, bucketURL: $bucketURL, subdir: $subdir, token: $token) 
+  }
+}
