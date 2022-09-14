@@ -98,7 +98,7 @@ query TfExec ($root: FSID!, $mount: FSID!, $args: String!, $token: SecretID!) {
 						path: "/src",
 						fs: $mount
 					}
-				]
+				],
 				secretEnv: [
 					{
 						name: "TF_TOKEN_app_terraform_io",
