@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/Khan/genqlient/graphql"
 	"github.com/dagger/cloak/sdk/go/dagger"
@@ -41,13 +40,13 @@ func tfExec(ctx context.Context, config dagger.FSID, token dagger.SecretID, comm
 		return nil, err
 	}
 
-	exec, err := exec(ctx, client, fsid, config, token, command)
+	execid, err := exec(ctx, client, fsid, config, token, command)
 	if err != nil {
 		fmt.Printf("cant execute plan: %v", err)
 		return nil, err
 	}
 
-	return &dagger.Filesystem{ID: exec}, nil
+	return &dagger.Filesystem{ID: execid}, nil
 }
 
 func image(ctx context.Context, client graphql.Client, ref string) (dagger.FSID, error) {
@@ -81,17 +80,13 @@ query Image ($ref: String!) {
 }
 
 func exec(ctx context.Context, client graphql.Client, root dagger.FSID, mount dagger.FSID, token dagger.SecretID, args []string) (dagger.FSID, error) {
-	flatArgs := "\""
-	flatArgs = flatArgs + strings.Join(args, "\", \"")
-	flatArgs = flatArgs + "\""
-
 	req := &graphql.Request{
 		Query: `
-query TfExec ($root: FSID!, $mount: FSID!, $args: String!, $token: SecretID!) {
+query TfExec ($root: FSID!, $mount: FSID!, $args: [String!]!, $token: SecretID!) {
 	core {
 		filesystem(id: $root) {
 			exec(input: {
-				args: [$args],
+				args: $args,
 				workdir: "/src",
 				mounts: [
 					{
@@ -117,7 +112,7 @@ query TfExec ($root: FSID!, $mount: FSID!, $args: String!, $token: SecretID!) {
 		Variables: map[string]any{
 			"root":  root,
 			"mount": mount,
-			"args":  flatArgs,
+			"args":  args,
 			"token": token,
 		},
 	}
