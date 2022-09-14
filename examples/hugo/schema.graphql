@@ -4,5 +4,5 @@ extend type Query {
 
 type hugo {
   generate(src: FSID!): Filesystem!
-  deploy(contents: FSID!, bucketURL: String!, subdir: String, token: SecretID!)
+  deploy(contents: FSID!, bucketURL: String!, subdir: String, token: SecretID!): Filesystem!
 }

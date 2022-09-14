@@ -126,4 +126,5 @@ type Script struct {
 
 type Hugo struct {
 	Generate *dagger.Filesystem `json:"generate"`
+	Deploy   *dagger.Filesystem `json:"deploy"`
 }
