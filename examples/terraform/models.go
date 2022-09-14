@@ -127,7 +127,8 @@ type Script struct {
 }
 
 type Terraform struct {
-	Apply *dagger.Filesystem `json:"apply"`
-	Plan  *dagger.Filesystem `json:"plan"`
-	Fmt   *dagger.Filesystem `json:"fmt"`
+	Apply   *dagger.Filesystem `json:"apply"`
+	Plan    *dagger.Filesystem `json:"plan"`
+	Fmt     *dagger.Filesystem `json:"fmt"`
+	Destroy *dagger.Filesystem `json:"destroy"`
 }

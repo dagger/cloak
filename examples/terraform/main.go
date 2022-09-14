@@ -23,6 +23,11 @@ func (r *terraform) fmt(ctx context.Context, config dagger.FSID, token dagger.Se
 	return tfExec(ctx, config, token, cmd)
 }
 
+func (r *terraform) destroy(ctx context.Context, config dagger.FSID, token dagger.SecretID) (*dagger.Filesystem, error) {
+	cmd := []string{"terraform", "apply", "-destroy", "-auto-approve"}
+	return tfExec(ctx, config, token, cmd)
+}
+
 func tfExec(ctx context.Context, config dagger.FSID, token dagger.SecretID, command []string) (*dagger.Filesystem, error) {
 	fs := &dagger.Filesystem{}
 

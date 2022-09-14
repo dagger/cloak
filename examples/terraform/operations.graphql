@@ -30,3 +30,14 @@ query Fmt($config: FSID!, $token: SecretID!) {
     }
   }
 }
+
+query Destroy($config: FSID!, $token: SecretID!) {
+  terraform {
+    destroy(
+        config: $config
+        token: $token
+    ) {
+      id
+    }
+  }
+}

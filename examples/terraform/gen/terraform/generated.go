@@ -25,6 +25,22 @@ type ApplyTerraform struct {
 // GetApply returns ApplyTerraform.Apply, and is useful for accessing the field via an interface.
 func (v *ApplyTerraform) GetApply() dagger.Filesystem { return v.Apply }
 
+// DestroyResponse is returned by Destroy on success.
+type DestroyResponse struct {
+	Terraform DestroyTerraform `json:"terraform"`
+}
+
+// GetTerraform returns DestroyResponse.Terraform, and is useful for accessing the field via an interface.
+func (v *DestroyResponse) GetTerraform() DestroyTerraform { return v.Terraform }
+
+// DestroyTerraform includes the requested fields of the GraphQL type Terraform.
+type DestroyTerraform struct {
+	Destroy dagger.Filesystem `json:"destroy"`
+}
+
+// GetDestroy returns DestroyTerraform.Destroy, and is useful for accessing the field via an interface.
+func (v *DestroyTerraform) GetDestroy() dagger.Filesystem { return v.Destroy }
+
 // FmtResponse is returned by Fmt on success.
 type FmtResponse struct {
 	Terraform FmtTerraform `json:"terraform"`
@@ -68,6 +84,18 @@ func (v *__ApplyInput) GetConfig() dagger.FSID { return v.Config }
 
 // GetToken returns __ApplyInput.Token, and is useful for accessing the field via an interface.
 func (v *__ApplyInput) GetToken() dagger.SecretID { return v.Token }
+
+// __DestroyInput is used internally by genqlient
+type __DestroyInput struct {
+	Config dagger.FSID     `json:"config"`
+	Token  dagger.SecretID `json:"token"`
+}
+
+// GetConfig returns __DestroyInput.Config, and is useful for accessing the field via an interface.
+func (v *__DestroyInput) GetConfig() dagger.FSID { return v.Config }
+
+// GetToken returns __DestroyInput.Token, and is useful for accessing the field via an interface.
+func (v *__DestroyInput) GetToken() dagger.SecretID { return v.Token }
 
 // __FmtInput is used internally by genqlient
 type __FmtInput struct {
@@ -123,6 +151,47 @@ query Apply ($config: FSID!, $token: SecretID!) {
 	}
 
 	var data ApplyResponse
+	resp := &graphql.Response{Data: &data}
+
+	err = client.MakeRequest(
+		ctx,
+		req,
+		resp,
+	)
+
+	return &data, err
+}
+
+func Destroy(
+	ctx context.Context,
+	config dagger.FSID,
+	token dagger.SecretID,
+) (*DestroyResponse, error) {
+	req := &graphql.Request{
+		OpName: "Destroy",
+		Query: `
+query Destroy ($config: FSID!, $token: SecretID!) {
+	terraform {
+		destroy(config: $config, token: $token) {
+			id
+		}
+	}
+}
+`,
+		Variables: &__DestroyInput{
+			Config: config,
+			Token:  token,
+		},
+	}
+	var err error
+	var client graphql.Client
+
+	client, err = dagger.Client(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var data DestroyResponse
 	resp := &graphql.Response{Data: &data}
 
 	err = client.MakeRequest(
