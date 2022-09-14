@@ -79,9 +79,14 @@ func Schema(h any) (string, error) {
 	if t.Kind() != reflect.Pointer {
 		name = strings.ToLower(t.Name())
 		pt = reflect.PointerTo(t)
-		methods = append(methods, getMethods(pt)...)
-		for _, v := range methods {
+		tMethods := getMethods(pt)
+		for _, v := range tMethods {
+			_, ok := methodMap[v.Name]
+			if ok {
+				continue
+			}
 			methodMap[v.Name] = struct{}{}
+			methods = append(methods, v)
 		}
 	}
 
