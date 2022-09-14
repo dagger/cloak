@@ -99,7 +99,7 @@ func Start(ctx context.Context, startOpts *Config, fn StartCallback) error {
 	}
 
 	router := router.New()
-	secretStore := secret.NewStore()
+	secretStore := secret.NewStore(router)
 
 	socketProviders := MergedSocketProviders{
 		project.DaggerSockName: project.NewAPIProxy(router),
