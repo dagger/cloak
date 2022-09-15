@@ -23,7 +23,9 @@ func TestCoreImage(t *testing.T) {
 	res := struct {
 		Core struct {
 			Image struct {
-				File string
+				FS struct {
+					File string
+				}
 			}
 		}
 	}{}
@@ -32,12 +34,14 @@ func TestCoreImage(t *testing.T) {
 		`{
 			core {
 				image(ref: "alpine:3.16.2") {
-					file(path: "/etc/alpine-release")
+					fs {
+						file(path: "/etc/alpine-release")
+					}
 				}
 			}
 		}`, &res, nil)
 	require.NoError(t, err)
-	require.Equal(t, res.Core.Image.File, "3.16.2\n")
+	require.Equal(t, res.Core.Image.FS.File, "3.16.2\n")
 }
 
 func TestCoreGit(t *testing.T) {
@@ -69,7 +73,9 @@ func TestFilesystemCopy(t *testing.T) {
 	alpine := struct {
 		Core struct {
 			Image struct {
-				ID string
+				FS struct {
+					ID string
+				}
 			}
 		}
 	}{}
@@ -78,12 +84,14 @@ func TestFilesystemCopy(t *testing.T) {
 		`{
 			core {
 				image(ref: "alpine:3.16.2") {
+					fs {
 					id
+				}
 				}
 			}
 		}`, &alpine, nil)
 	require.NoError(t, err)
-	require.NotEmpty(t, alpine.Core.Image.ID)
+	require.NotEmpty(t, alpine.Core.Image.FS.ID)
 
 	res := struct {
 		Core struct {
@@ -110,7 +118,7 @@ func TestFilesystemCopy(t *testing.T) {
 			}
 		}`, &res, &testutil.QueryOptions{
 			Variables: map[string]any{
-				"from": alpine.Core.Image.ID,
+				"from": alpine.Core.Image.FS.ID,
 			},
 		})
 	require.NoError(t, err)
@@ -123,7 +131,9 @@ func TestCoreExec(t *testing.T) {
 	imageRes := struct {
 		Core struct {
 			Image struct {
-				ID string
+				FS struct {
+					ID string
+				}
 			}
 		}
 	}{}
@@ -131,12 +141,14 @@ func TestCoreExec(t *testing.T) {
 		`{
 			core {
 				image(ref: "alpine:3.16.2") {
-					id
+					fs {
+						id
+					}
 				}
 			}
 		}`, &imageRes, nil)
 	require.NoError(t, err)
-	id := imageRes.Core.Image.ID
+	id := imageRes.Core.Image.FS.ID
 
 	execRes := struct {
 		Core struct {
@@ -227,12 +239,20 @@ func TestCoreImageExport(t *testing.T) {
 		require.NoError(t, err)
 
 		testRef := "127.0.0.1:5000/testimagepush:latest"
+		// TODO(vito): it might make sense to do a pushImage from Image too, which
+		// would include the original config. hmm...
+		//
+		// for straight-up mirroring like the example below we might even want the
+		// unsullied image config JSON, rather than turning it into a higher-level
+		// ExecInput. HMM...
 		err = ctx.Client.MakeRequest(ctx,
 			&graphql.Request{
 				Query: `query TestImagePush($ref: String!) {
 					core {
 						image(ref: "alpine:3.16.2") {
-							pushImage(ref: $ref)
+							fs {
+								pushImage(ref: $ref)
+							}
 						}
 					}
 				}`,
@@ -247,7 +267,9 @@ func TestCoreImageExport(t *testing.T) {
 		res := struct {
 			Core struct {
 				Image struct {
-					File string
+					FS struct {
+						File string
+					}
 				}
 			}
 		}{}
@@ -256,7 +278,9 @@ func TestCoreImageExport(t *testing.T) {
 				Query: `query TestImagePull($ref: String!) {
 					core {
 						image(ref: $ref) {
-							file(path: "/etc/alpine-release")
+							fs {
+								file(path: "/etc/alpine-release")
+							}
 						}
 					}
 				}`,
@@ -267,7 +291,7 @@ func TestCoreImageExport(t *testing.T) {
 			&graphql.Response{Data: &res},
 		)
 		require.NoError(t, err)
-		require.Equal(t, res.Core.Image.File, "3.16.2\n")
+		require.Equal(t, res.Core.Image.FS.File, "3.16.2\n")
 		return nil
 	})
 	require.NoError(t, err)
