@@ -1,6 +1,6 @@
-query Generate($src: FSID!) {
+query Generate($src: FSID!, $themeGitURL: String!, $hugoVersion: String) {
   hugo {
-    generate(src: $src) {
+    generate(src: $src, themeGitURL: $themeGitURL, hugoVersion: $hugoVersion) {
       id
     }
   }

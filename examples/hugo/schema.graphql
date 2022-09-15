@@ -3,6 +3,6 @@ extend type Query {
 }
 
 type hugo {
-  generate(src: FSID!): Filesystem!
+  generate(src: FSID!, themeGitURL: String!, hugoVersion: String): Filesystem!
   deploy(contents: FSID!, bucketURL: String!, subdir: String, token: SecretID!): Filesystem!
 }

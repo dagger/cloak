@@ -1,4 +1,4 @@
-module hugo
+module github.com/dagger/cloak/examples/hugo
 
 go 1.19
 

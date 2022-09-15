@@ -11,18 +11,21 @@ import (
 	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/gcsblob"
 
-	"hugo/gen/core"
+	"github.com/dagger/cloak/examples/hugo/gen/core"
 )
 
-func (r *hugo) generate(ctx context.Context, src dagger.FSID) (*dagger.Filesystem, error) {
-
+// generate generates the static website stored in src.
+// It uses hugo with the hugoVersion in the format M.m.p (not prefixed by v).
+// The theme at themeGitURL will clone under the repository name (eg. https://github.com/userX/<repository name>) in the theme folder.
+func (r *hugo) generate(ctx context.Context, src dagger.FSID, themeGitURL, hugoVersion string) (*dagger.Filesystem, error) {
 	alp, err := alpine.Build(ctx, []string{"curl", "git"})
 	if err != nil {
 		return nil, err
 	}
 
 	curled, err := core.Exec(ctx, alp.Alpine.Build.ID, core.ExecInput{
-		Args: []string{"sh", "-c", "curl -L https://github.com/gohugoio/hugo/releases/download/v0.102.3/hugo_0.102.3_Linux-64bit.tar.gz | tar -xz"},
+		Args: []string{"sh", "-c",
+			fmt.Sprintf("curl -L https://github.com/gohugoio/hugo/releases/download/v%[1]s/hugo_[1]%s_Linux-64bit.tar.gz | tar -xz", hugoVersion)},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("install hugo: %w", err)
@@ -30,7 +33,8 @@ func (r *hugo) generate(ctx context.Context, src dagger.FSID) (*dagger.Filesyste
 	_ = curled
 
 	themed, err := core.Exec(ctx, curled.Core.Filesystem.Exec.Fs.ID, core.ExecInput{
-		Args: []string{"sh", "-c", "git init . && git submodule init && git submodule add https://github.com/theNewDynamic/gohugo-theme-ananke.git ./mnt/themes/ananke"},
+		Args: []string{"sh", "-c",
+			fmt.Sprintf("git init . && git submodule init && git submodule add %s ./mnt/themes/", themeGitURL)},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("git submodule add: %w", err)

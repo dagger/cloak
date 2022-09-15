@@ -28,6 +28,8 @@ func (v *GenerateResponse) GetHugo() GenerateHugo { return v.Hugo }
 // __GenerateInput is used internally by genqlient
 type __GenerateInput struct {
 	Src dagger.FSID `json:"src"`
+	ThemeGitURL string `json:"themeGitURL"`
+	HugoVersion string `json:"hugoVersion"`
 }
 
 // GetSrc returns __GenerateInput.Src, and is useful for accessing the field via an interface.
@@ -36,6 +38,8 @@ func (v *__GenerateInput) GetSrc() dagger.FSID { return v.Src }
 func Generate(
 	ctx context.Context,
 	src dagger.FSID,
+	themeGitURL string,
+	hugoVersion string,
 ) (*GenerateResponse, error) {
 	req := &graphql.Request{
 		OpName: "Generate",
@@ -50,6 +54,8 @@ query Generate ($src: FSID!) {
 `,
 		Variables: &__GenerateInput{
 			Src: src,
+	ThemeGitURL: themeGitURL ,
+	HugoVersion: hugoVersion ,
 		},
 	}
 	var err error
