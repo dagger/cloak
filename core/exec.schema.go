@@ -150,6 +150,9 @@ extend type Filesystem {
 
 func (s *execSchema) Resolvers() router.Resolvers {
 	return router.Resolvers{
+		"Image": router.ObjectResolver{
+			"exec": s.exec,
+		},
 		"Filesystem": router.ObjectResolver{
 			"exec": s.exec,
 		},
@@ -167,9 +170,20 @@ func (s *execSchema) Dependencies() []router.ExecutableSchema {
 }
 
 func (s *execSchema) exec(p graphql.ResolveParams) (any, error) {
-	obj, err := filesystem.FromSource(p.Source)
-	if err != nil {
-		return nil, err
+	var fsObj *filesystem.Filesystem
+	var imageInput *ExecInput
+
+	// TODO(vito): this is a little hokey, but don't want to introduce a
+	// circular dependency from filesystem.FromSource back to core.Image
+	if img, ok := p.Source.(*Image); ok {
+		fsObj = img.FS
+		imageInput = img.ExecInput
+	} else {
+		var err error
+		fsObj, err = filesystem.FromSource(p.Source)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var input ExecInput
@@ -212,6 +226,13 @@ func (s *execSchema) exec(p graphql.ResolveParams) (any, error) {
 		))
 	}
 
+	if imageInput != nil {
+		// TODO(vito): what else should be respected?
+		for _, env := range imageInput.Env {
+			runOpt = append(runOpt, llb.AddEnv(env.Name, env.Value))
+		}
+	}
+
 	for _, env := range input.Env {
 		runOpt = append(runOpt, llb.AddEnv(env.Name, env.Value))
 	}
@@ -230,7 +251,7 @@ func (s *execSchema) exec(p graphql.ResolveParams) (any, error) {
 		)
 	}
 
-	st, err := obj.ToState()
+	st, err := fsObj.ToState()
 	if err != nil {
 		return nil, err
 	}

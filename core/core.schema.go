@@ -1,15 +1,18 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strings"
 
 	"github.com/dagger/cloak/core/filesystem"
 	"github.com/dagger/cloak/router"
+	"github.com/docker/distribution/reference"
 	"github.com/graphql-go/graphql"
 	bkclient "github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
+	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 var _ router.ExecutableSchema = &coreSchema{}
@@ -37,10 +40,22 @@ extend type Query {
 "Core API"
 type Core {
 	"Fetch an OCI image"
-	image(ref: String!): Filesystem!
+	image(ref: String!): Image!
 
 	"Fetch a git repository"
 	git(remote: String!, ref: String): Filesystem!
+}
+
+"Image filesystem and initial exec inputs, e.g. an OCI image"
+type Image {
+	"Root filesystem"
+	fs: Filesystem!
+
+	"Default/initial exec inputs from the image config"
+	execInput: ExecInput!
+
+	"Execute a command inside this image with the given inputs overriding the image's initial exec inputs"
+	exec(input: ExecInput!): Exec!
 }
 
 "Interactions with the user's host filesystem"
@@ -96,11 +111,58 @@ func (r *coreSchema) host(p graphql.ResolveParams) (any, error) {
 	return struct{}{}, nil
 }
 
+type Image struct {
+	FS        *filesystem.Filesystem `json:"fs"`
+	ExecInput *ExecInput             `json:"execInput"`
+}
+
 func (r *coreSchema) image(p graphql.ResolveParams) (any, error) {
 	ref := p.Args["ref"].(string)
 
+	pr, err := reference.ParseNormalizedNamed(ref)
+	if err == nil {
+		pr = reference.TagNameOnly(pr)
+		ref = pr.String()
+	}
+
+	_, dt, err := r.gw.ResolveImageConfig(p.Context, ref, llb.ResolveImageConfigOpt{
+		Platform: &r.platform,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	st := llb.Image(ref)
-	return r.Solve(p.Context, st)
+
+	var img ocispecs.Image
+	if err := json.Unmarshal(dt, &img); err != nil {
+		return nil, err
+	}
+
+	var imageInput ExecInput
+
+	// TODO(vito): populate with more than just config env
+	for _, env := range img.Config.Env {
+		name, val, ok := strings.Cut(env, "=")
+		if !ok {
+			val = "" // be explicit
+		}
+
+		imageInput.Env = append(imageInput.Env, ExecEnvInput{
+			Name:  name,
+			Value: val,
+		})
+	}
+
+	fs, err := r.Solve(p.Context, st)
+	if err != nil {
+		return nil, fmt.Errorf("solve fs: %w", err)
+	}
+
+	return &Image{
+		FS:        fs,
+		ExecInput: &imageInput,
+	}, nil
 }
 
 func (r *coreSchema) git(p graphql.ResolveParams) (any, error) {
