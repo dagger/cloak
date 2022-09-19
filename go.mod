@@ -3,7 +3,7 @@ module github.com/dagger/cloak
 go 1.18
 
 require (
-	github.com/99designs/gqlgen v0.17.19
+	github.com/99designs/gqlgen v0.17.20
 	github.com/Khan/genqlient v0.5.0
 	github.com/bhoriuchi/graphql-go-tools v1.0.0
 	github.com/containerd/containerd v1.6.8
@@ -74,8 +74,8 @@ require (
 	github.com/klauspost/compress v1.15.9 // indirect
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/mattn/go-colorable v0.1.12 // indirect
-	github.com/mattn/go-isatty v0.0.14 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/moby/locker v1.0.1 // indirect
 	github.com/moby/sys/signal v0.7.0 // indirect
